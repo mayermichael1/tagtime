@@ -1,7 +1,10 @@
 #ifndef GENERAL_H 
 #define GENERAL_H 
 
+/// TYPE Declarations
+
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef int8_t      s8;
 typedef int16_t     s16;
@@ -21,13 +24,17 @@ typedef uint8_t     b8;
 typedef u64         umm;
 typedef s64         smm;
 
-#define global_variable static
-#define internal        static
-#define local_persist   static
+#define global_variable static  // may be used for variables is default
+#define internal        static  // may be used for functions default is extern
+#define local_persist   static  // may be used for variables in block scope
+
+/// HELPER General
 
 #define ASSERT(cond) \
-    if(!cond) __builtin_trap();
+    if(!(cond)) __builtin_trap();
 
 #define OFFSET_OF(structure, member) ((umm)&((structure*)0)->member - (umm)0)
+
+#define CSTRING_CAST(value) (const char*)value
 
 #endif 
