@@ -55,7 +55,7 @@ create_scratch_memory(umm size)
 /// @return returns the memory address of the reserved memory
 //TODO: There maybe should be a MACRO to push whatever struct onto the scratch
 umm
-scratch_memory_push(scratch_memory *scratch, umm size)
+push_scratch_memory(scratch_memory *scratch, umm size)
 {
     ASSERT(scratch_remaining(scratch) >= size);
     umm address = scratch->current;

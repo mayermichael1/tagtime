@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <time.h>
 
 u64 
 get_file_size(const char *filename)
@@ -45,4 +46,10 @@ void
 deallocate(umm start_address, umm size)
 {
     munmap((void *)start_address, size);
+}
+
+u64
+seconds_since_epoch()
+{
+    return(time(NULL));
 }

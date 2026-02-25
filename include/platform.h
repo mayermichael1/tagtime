@@ -15,4 +15,7 @@ allocate(umm size);
 void
 deallocate(umm start_address, umm size);
 
+u64
+seconds_since_epoch();
+
 #endif
