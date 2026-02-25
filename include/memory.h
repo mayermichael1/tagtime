@@ -63,6 +63,9 @@ push_scratch_memory(scratch_memory *scratch, umm size)
     return(address);
 }
 
+#define PUSH_SCRATCH_STRUCT(scratch, structname) (structname*)push_scratch_memory(scratch, sizeof(structname))
+#define PUSH_SCRATCH_ARRAY(scratch, structname, entries) (structname*)push_scratch_memory(scratch, sizeof(structname) * entries)
+
 /// destroy_scratch_memory
 ///
 /// this destroys a created scratch space 

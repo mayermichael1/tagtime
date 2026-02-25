@@ -40,7 +40,7 @@ main(void)
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
     //
-    time_entry *arr = (time_entry*)push_scratch_memory(&mem, sizeof(time_entry) * 10000);
+    time_entry *arr = PUSH_SCRATCH_ARRAY(&mem, time_entry, 10000);
     for(u32 i = 0; i < 10000; ++i)
     {
         arr[i] = create_entry(i);
