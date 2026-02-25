@@ -1,11 +1,12 @@
 #include <stdio.h>
-
 #include "include/general.h"
 #include "include/platform.h"
 #include "include/memory.h"
 #include "include/math.h"
+#include "include/string.h"
 
 #include "src/linux_platform.c"
+
 
 typedef struct 
 {
@@ -26,8 +27,6 @@ create_entry(u64 duration)
 s32 
 main(void)
 {
-    scratch_memory mem = create_scratch_memory(500 * MB);
-    printf("Hello World \n");
 
     // handle cli arguments here
     //
@@ -40,11 +39,20 @@ main(void)
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
     //
+
+    // TODO: format various formats for durations 
+    // TODO: strings are needed
+
+    scratch_memory mem = create_scratch_memory(500 * MB);
+
     time_entry *arr = PUSH_SCRATCH_ARRAY(&mem, time_entry, 10000);
+
     for(u32 i = 0; i < 10000; ++i)
     {
         arr[i] = create_entry(i);
     }
 
+    string test = create_string("Hello World");
+    printf("String length: %d String value: %s", test.size, to_c_string(test, &mem));
     return(0);
 }
