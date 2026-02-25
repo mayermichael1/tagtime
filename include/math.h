@@ -4,6 +4,7 @@
 #include "general.h"
 
 #define MIN(a, b) (a < b) ? a : b;
+#define MAX(a, b) (a > b) ? a : b;
 
 typedef union
 {
@@ -37,6 +38,18 @@ typedef struct
     f32 a;
 }
 v4f32;
+
+
+u64 
+pow_u64(u64 value, u32 exponent)
+{
+    u64 pow = 1;
+    for(u32 i = 0; i < exponent; ++i)
+    {
+        pow *= value;
+    }
+    return(value);
+}
 
 /// BIT OPERATIONS
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "include/general.h"
 #include "include/platform.h"
 #include "include/memory.h"
@@ -24,6 +25,57 @@ create_entry(u64 duration)
     return(entry);
 }
 
+/// three possible formats:
+/// - if : is found expect 00:00
+/// - if , or . is found expect hhhh,mmmm
+/// - if no special character is found excpect minutes
+u64 
+string_to_minutes(string str)
+{
+    s64 colon_index = string_find_u8(str,':');
+    s64 komma_index = string_find_u8(str,',');
+    s64 point_index = string_find_u8(str,'.');
+
+    u64 minutes = 0;
+
+    // need functions to split strings
+
+    if(komma_index != -1 || point_index != -1)
+    {
+        u32 index = MAX(komma_index, point_index)
+        ASSERT(index > 1);
+        ASSERT(index < (str.size-1));
+
+        string hour_string = string_split_to(str, index-1);
+        string minute_string = string_split_from(str, index+1);
+
+        u32 hours = string_to_u64(hour_string); 
+        u32 decimal = string_to_u64(minute_string);
+        // calculate minutes from decimal places
+        minutes = 60 * decimal / pow_u64(10, (minute_string.size + 1));
+        minutes += hours * 60;
+    }
+    else if(colon_index != -1)
+    {
+        ASSERT(colon_index > 1);
+        ASSERT(colon_index < (str.size-1));
+
+        string hour_string = string_split_to(str, colon_index-1);
+        string minute_string = string_split_from(str, colon_index+1);
+
+        u32 hours = string_to_u64(hour_string); 
+        minutes = string_to_u64(minute_string);
+        ASSERT(minutes < 60);
+        minutes += hours * 60;
+    }
+    else
+    {
+        minutes = string_to_u64(str);
+    }
+
+    return(minutes);
+}
+
 s32 
 main(void)
 {
@@ -41,6 +93,9 @@ main(void)
     //
 
     // TODO: format various formats for durations 
+    //          00:00 for hh:mm
+    //          1,2 for 1 h 0,2*60 minutes
+    //          1234 minute count
     // TODO: strings are needed
 
     scratch_memory mem = create_scratch_memory(500 * MB);
@@ -52,7 +107,12 @@ main(void)
         arr[i] = create_entry(i);
     }
 
-    string test = create_string("Hello World");
-    printf("String length: %d String value: %s", test.size, to_c_string(test, &mem));
+    string colon_format = create_string("15:30");
+    string decimal_format = create_string("15.5");
+    string minute_format = create_string("930");
+
+    printf("minutes: %d \n", string_to_minutes(colon_format));
+    printf("minutes: %d \n", string_to_minutes(decimal_format));
+    printf("minutes: %d \n", string_to_minutes(minute_format));
     return(0);
 }
