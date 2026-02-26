@@ -1,4 +1,3 @@
-
 #include "include/platform.h"
 
 #include <fcntl.h>
@@ -6,6 +5,9 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <stdlib.h>
+
+struct scratch_memory;
 
 u64 
 get_file_size(const char *filename)
@@ -52,4 +54,23 @@ u64
 seconds_since_epoch()
 {
     return(time(NULL));
+}
+
+string
+get_data_directory(scratch_memory *scratch)
+{
+    string dir = create_string(getenv("XDG_DATA_HOME"));
+    // TODO: determinine application name dynamically somehow
+    // TODO: stringbuilder for appending strings here. right now string 
+    //       is just duplicated and stored in abcking store again
+    if(dir.size == 0)
+    {
+        dir = create_string(getenv("HOME"));
+        dir = string_append(dir, create_string("/.local/share/tagtime/"), scratch);
+    }
+    else
+    {
+        dir = string_append(dir, create_string("/tagtime/"), scratch);
+    }
+    return(dir);
 }

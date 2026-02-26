@@ -2,6 +2,7 @@
 #define PLATFORM_H
 
 #include "general.h"
+#include "string.h"
 
 u64
 get_file_size(const char *filename);
@@ -17,5 +18,8 @@ deallocate(umm start_address, umm size);
 
 u64
 seconds_since_epoch();
+
+string
+get_data_directory();
 
 #endif

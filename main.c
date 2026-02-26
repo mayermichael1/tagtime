@@ -5,6 +5,7 @@
 #include "include/memory.h"
 #include "include/math.h"
 #include "include/string.h"
+#include "include/string_memory.h"
 
 #include "src/linux_platform.c"
 
@@ -43,7 +44,7 @@ string_to_minutes(string str)
     if(komma_index != -1 || point_index != -1)
     {
         u32 index = MAX(komma_index, point_index)
-        ASSERT(index > 1);
+        ASSERT(index >= 1);
         ASSERT(index < (str.size-1));
 
         string hour_string = string_split_to(str, index-1);
@@ -57,7 +58,7 @@ string_to_minutes(string str)
     }
     else if(colon_index != -1)
     {
-        ASSERT(colon_index > 1);
+        ASSERT(colon_index >= 1);
         ASSERT(colon_index < (str.size-1));
 
         string hour_string = string_split_to(str, colon_index-1);
@@ -101,32 +102,27 @@ main(u32 argc, u8** argv)
     // - create new tag
     // - query tag(s)
     // - edit an existing entry
-        
+    
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
     //
-
-    // TODO: format various formats for durations 
-    //          00:00 for hh:mm
-    //          1,2 for 1 h 0,2*60 minutes
-    //          1234 minute count
-    // TODO: strings are needed
-
-    scratch_memory mem = create_scratch_memory(500 * MB);
-
-    time_entry *arr = PUSH_SCRATCH_ARRAY(&mem, time_entry, 10000);
-
-    for(u32 i = 0; i < 10000; ++i)
+    
+    u64 duration = 0;
+    if(argc >= 2)
     {
-        arr[i] = create_entry(i);
+        duration = string_to_minutes(create_string(argv[1]));
+    }
+    else
+    {
+        printf("argument required!\n");
+        //TODO: properly handle arguments before going to logic
     }
 
-    string colon_format = create_string("15:30");
-    string decimal_format = create_string("15.5");
-    string minute_format = create_string("930");
+    time_entry entry = create_entry(duration);
+    printf("Entry created at %lu with a duration of %lu minutes\n", entry.timestamp, entry.minutes);
 
-    printf("minutes: %d \n", string_to_minutes(colon_format));
-    printf("minutes: %d \n", string_to_minutes(decimal_format));
-    printf("minutes: %d \n", string_to_minutes(minute_format));
+    scratch_memory mem = create_scratch_memory(MB);
+    printf("data dir %s\n", get_data_directory(&mem).data);
+
     return(0);
 }
