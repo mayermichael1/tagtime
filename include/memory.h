@@ -7,7 +7,14 @@
 #define MB  KB * KB
 #define GB  MB * MB
 
-typedef struct
+/// whenever a sratch_memory is passed as a pointer the buffer is permanently 
+/// changed 
+/// when the struct is passed as a value it works like a temporary data store
+/// because changes to current are just poped form the stack as soon as  the 
+/// scope is exited the memory returns to its previous state
+/// this only works as long as the scratch does not grow itself
+/// the data is not deleted, only the pointer is returned to the previous position
+typedef struct _scratch_memory
 {
     umm start;  
     umm current; 

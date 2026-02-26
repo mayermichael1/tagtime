@@ -7,28 +7,29 @@
 #include <time.h>
 #include <stdlib.h>
 
-struct scratch_memory;
+#include "include/string_memory.h"
 
 u64 
-get_file_size(const char *filename)
+get_file_size(string filename, scratch_memory scratch)
 {
     struct stat st;
-    stat(filename, &st);
+    const char *cfile = to_c_string(filename, &scratch);
+    stat(cfile, &st);
 
     u64 filesize = st.st_size;
-    return filesize;
+    return(filesize);
 }
+
 void
-read_file(const char *filename, u64 file_size, u8 *buffer)
+read_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
 {
-    s32 file = open(filename, O_RDONLY);
+    s32 file = open(to_c_string(filename, &scratch), O_RDONLY);
 
     if(file > 0)
     {
-        read(file, buffer, file_size);
+        read(file , buffer, file_size);
         close(file);
     }
-    buffer[file_size] = 0;
 }
 
 umm

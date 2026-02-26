@@ -12,8 +12,8 @@
 
 typedef struct 
 {
-    u64 minutes;
     u64 timestamp;
+    u64 minutes;
 }
 time_entry;
 
@@ -118,11 +118,20 @@ main(u32 argc, u8** argv)
         //TODO: properly handle arguments before going to logic
     }
 
-    time_entry entry = create_entry(duration);
-    printf("Entry created at %lu with a duration of %lu minutes\n", entry.timestamp, entry.minutes);
+    scratch_memory temp_mem = create_scratch_memory(MB);
+        
+    string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
+    u64 file_size = get_file_size(file, temp_mem);
+    u64 buffer_size = file_size += KB; // safety buffer should most definitely 
+                                       // be enough
+    scratch_memory data_store = create_scratch_memory(buffer_size);
+    u8 *buffer = PUSH_SCRATCH_ARRAY(&data_store, u8, buffer_size);
+    read_file(file, file_size, buffer, temp_mem);
+    u32 entry_count = file_size % sizeof(time_entry);
+    time_entry *entries = (time_entry*)buffer;
+    entries[++entry_count] = create_entry(duration);
 
-    scratch_memory mem = create_scratch_memory(MB);
-    printf("data dir %s\n", get_data_directory(&mem).data);
+    //TODO: write out file again
 
     return(0);
 }
