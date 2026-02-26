@@ -77,16 +77,30 @@ string_to_minutes(string str)
 }
 
 s32 
-main(void)
+main(u32 argc, u8** argv)
 {
 
+    // cli strutcture
+    // tagtime <time> <tag>* -- record an entry
+    // tagtime newtag <name> -- create new tag with name <name>
+    // tagtime list <tag>* -- list all entries connected to all given tags
+    // tagtime sum <tag>* -- sum all entries connected to all given tags
+    // tagtime delete entryid|tagname  delete either a tag or entry
+    // tagtime addtag <tag> <entry> add tag to an entry
+    // tagtiem deltag <tag> <entry> remove tag from an entry
+    //
+    // global options:
+    //
+    // -f filename for the backing store. If this is not given a 
+    // location is determined automatically
+    //
+    //
     // handle cli arguments here
     //
     // - track new time
     // - create new tag
     // - query tag(s)
     // - edit an existing entry
-    //
         
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
