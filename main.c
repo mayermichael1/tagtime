@@ -21,33 +21,60 @@ typedef struct
 {
     u64 entry_count;
 }
-state_header;
+time_data_header;
 
 typedef struct
 {
     time_entry *entries;
 }
-state_data;
+time_data_pointer;
 
 typedef struct
 {
-    state_header header; 
-    state_data data;
+    time_data_header header; 
+    time_data_pointer data;
 }
-state;
+time_data;
+
+time_data 
+data_from_file(string filename, scratch_memory temp)
+{
+    time_data data;
+
+    scratch_memory mem = create_scratch_memory(sizeof(time_data_header));
+    time_data_header *header = PUSH_SCRATCH_STRUCT(&mem, time_data_header);
+    read_file(filename, sizeof(header), (u8*)header, temp);
+
+    data.header = *header; 
+    
+    // actual data
+    //
+    u64 offset = sizeof(header);
+    u64 chunk_size = data.header.entry_count * sizeof(time_entry);
+
+    time_data_pointer pointer;
+    mem = create_scratch_memory(chunk_size + sizeof(time_entry));
+    time_entry *entries = PUSH_SCRATCH_ARRAY(&mem, time_entry, data.header.entry_count + 1);
+    read_file_from(filename, sizeof(header), chunk_size, (u8*)entries ,temp); 
+    offset+=chunk_size;
+    pointer.entries = entries;
+
+    data.data = pointer;
+
+    return(data);
+}
 
 void 
-state_set_data_pointers(state *store)
+data_to_file(string filename, time_data data, scratch_memory temp)
 {
-    store->data.entries = (time_entry*) store + sizeof(store->header);
-    // next will be :
-    // store->data.whatever = store->data.entries + store->header.entries * sizeof(time_entry);
+    write_file(filename, sizeof(data.header), (u8*)&data.header, temp);
+    append_file(filename, sizeof(time_entry) * data.header.entry_count, (u8*)data.data.entries, temp);
 }
 
-u64 
-state_size(state store)
+void
+insert_time_entry(time_data *data, time_entry entry)
 {
-    return(sizeof(state_header) + store.header.entry_count * sizeof(time_entry));
+    data->data.entries[data->header.entry_count++] = entry;
 }
 
 time_entry
@@ -140,30 +167,24 @@ main(u32 argc, u8** argv)
     //stores tags
     //
     
-    u64 duration = 0;
+    scratch_memory temp_mem = create_scratch_memory(MB);
+    string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
+    time_data data = data_from_file(file, temp_mem);
+
     if(argc >= 2)
     {
-        duration = string_to_minutes(create_string(argv[1]));
-
-        scratch_memory temp_mem = create_scratch_memory(MB);
-            
-        string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
-        u64 file_size = get_file_size(file, temp_mem);
-        u64 buffer_size = file_size + KB; // safety buffer should most definitely 
-                                           // be enough
-
-        scratch_memory data_mem = create_scratch_memory(buffer_size);
-        state *store = (state*)push_scratch_memory(&data_mem, buffer_size);
-        read_file(file, file_size, (u8*)store, temp_mem);
-        state_set_data_pointers(store);
-
-        store->data.entries[store->header.entry_count++] = create_entry(duration);
-        write_file(file, state_size(*store), (u8*)store, temp_mem);
-        
+        u64 duration = string_to_minutes(create_string(argv[1]));
+        insert_time_entry(&data, create_entry(duration));
+        data_to_file(file, data, temp_mem);
     }
     else
     {
-        printf("argument required!\n");
+        printf("List of tracked times:!\n");
+        for(u32 i = 0; i < data.header.entry_count; ++i)
+        {
+            printf("entry at %u with a duration of %u\n", data.data.entries[i].timestamp, data.data.entries[i].minutes);
+        }
+
         //TODO: properly handle arguments before going to logic
     }
 

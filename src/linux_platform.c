@@ -23,13 +23,20 @@ get_file_size(string filename, scratch_memory scratch)
 }
 
 void
-read_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
+read_file(string filename, u64 len, u8 *buffer, scratch_memory scratch)
+{
+    read_file_from(filename, 0, len, buffer, scratch);
+}
+
+void
+read_file_from(string filename, u64 from, u64 len, u8 *buffer, scratch_memory scratch)
 {
     s32 file = open(to_c_string(filename, &scratch), O_RDONLY);
 
     if(file > 0)
     {
-        read(file , buffer, file_size);
+        lseek(file, from, SEEK_SET);
+        read(file , buffer, len);
         close(file);
     }
 }
@@ -43,6 +50,25 @@ write_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
     {
         s32 file = open(to_c_string(filename, &scratch), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+
+        if(file > 0)
+        {
+            write(file, buffer, file_size);
+            close(file);
+        }
+    }
+}
+
+//TODO: massive code duplication
+void
+append_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
+{
+    string dirname = string_split_to(filename, string_find_last(filename, '/'));
+    const char *dir = to_c_string(dirname, &scratch);
+
+    if(mkdir(dir, 0777) == 0 || errno == EEXIST)
+    {
+        s32 file = open(to_c_string(filename, &scratch), O_WRONLY | O_CREAT | O_APPEND, 0777);
 
         if(file > 0)
         {
