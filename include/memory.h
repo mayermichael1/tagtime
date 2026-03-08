@@ -23,15 +23,15 @@ typedef struct _scratch_memory
 scratch_memory;
 
 internal umm
-scratch_remaining(scratch_memory *scratch)
+scratch_remaining(scratch_memory scratch)
 {
-    return(scratch->end - scratch->current);
+    return(scratch.end - scratch.current);
 }
 
 internal umm
-scratch_size(scratch_memory *scratch)
+scratch_size(scratch_memory scratch)
 {
-    return(scratch->end - scratch->start);
+    return(scratch.end - scratch.start);
 }
 
 /// create_scratch_memory 
@@ -64,7 +64,7 @@ create_scratch_memory(umm size)
 umm
 push_scratch_memory(scratch_memory *scratch, umm size)
 {
-    ASSERT(scratch_remaining(scratch) >= size);
+    ASSERT(scratch_remaining(*scratch) >= size);
     umm address = scratch->current;
     scratch->current += size;
     return(address);
@@ -81,7 +81,7 @@ push_scratch_memory(scratch_memory *scratch, umm size)
 void
 destroy_scratch_memory(scratch_memory *scratch)
 {
-    deallocate(scratch->start, scratch_size(scratch));
+    deallocate(scratch->start, scratch_size(*scratch));
     scratch->start = 0;
     scratch->end = 0;
     scratch->current = 0;

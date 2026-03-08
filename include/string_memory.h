@@ -44,8 +44,8 @@ string
 string_append(string str1, string str2, scratch_memory *scratch)
 {
     string appended = {};
-    appended.data = PUSH_SCRATCH_ARRAY(scratch, u8, appended.size);
     appended.size = str1.size+str2.size;
+    appended.data = PUSH_SCRATCH_ARRAY(scratch, u8, appended.size);
     for(u32 i = 0; i < str1.size; ++i)
     {
         appended.data[i] = str1.data[i];

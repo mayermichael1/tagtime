@@ -17,6 +17,39 @@ typedef struct
 }
 time_entry;
 
+typedef struct
+{
+    u64 entry_count;
+}
+state_header;
+
+typedef struct
+{
+    time_entry *entries;
+}
+state_data;
+
+typedef struct
+{
+    state_header header; 
+    state_data data;
+}
+state;
+
+void 
+state_set_data_pointers(state *store)
+{
+    store->data.entries = (time_entry*) store + sizeof(store->header);
+    // next will be :
+    // store->data.whatever = store->data.entries + store->header.entries * sizeof(time_entry);
+}
+
+u64 
+state_size(state store)
+{
+    return(sizeof(state_header) + store.header.entry_count * sizeof(time_entry));
+}
+
 time_entry
 create_entry(u64 duration)
 {
@@ -111,6 +144,22 @@ main(u32 argc, u8** argv)
     if(argc >= 2)
     {
         duration = string_to_minutes(create_string(argv[1]));
+
+        scratch_memory temp_mem = create_scratch_memory(MB);
+            
+        string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
+        u64 file_size = get_file_size(file, temp_mem);
+        u64 buffer_size = file_size + KB; // safety buffer should most definitely 
+                                           // be enough
+
+        scratch_memory data_mem = create_scratch_memory(buffer_size);
+        state *store = (state*)push_scratch_memory(&data_mem, buffer_size);
+        read_file(file, file_size, (u8*)store, temp_mem);
+        state_set_data_pointers(store);
+
+        store->data.entries[store->header.entry_count++] = create_entry(duration);
+        write_file(file, state_size(*store), (u8*)store, temp_mem);
+        
     }
     else
     {
@@ -118,20 +167,6 @@ main(u32 argc, u8** argv)
         //TODO: properly handle arguments before going to logic
     }
 
-    scratch_memory temp_mem = create_scratch_memory(MB);
-        
-    string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
-    u64 file_size = get_file_size(file, temp_mem);
-    u64 buffer_size = file_size += KB; // safety buffer should most definitely 
-                                       // be enough
-    scratch_memory data_store = create_scratch_memory(buffer_size);
-    u8 *buffer = PUSH_SCRATCH_ARRAY(&data_store, u8, buffer_size);
-    read_file(file, file_size, buffer, temp_mem);
-    u32 entry_count = file_size % sizeof(time_entry);
-    time_entry *entries = (time_entry*)buffer;
-    entries[++entry_count] = create_entry(duration);
-
-    //TODO: write out file again
 
     return(0);
 }

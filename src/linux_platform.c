@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "include/string_memory.h"
 
@@ -14,9 +15,10 @@ get_file_size(string filename, scratch_memory scratch)
 {
     struct stat st;
     const char *cfile = to_c_string(filename, &scratch);
-    stat(cfile, &st);
-
-    u64 filesize = st.st_size;
+    u64 filesize = 0;
+    if(stat(cfile, &st)==0){
+        filesize = st.st_size;
+    }
     return(filesize);
 }
 
@@ -29,6 +31,24 @@ read_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
     {
         read(file , buffer, file_size);
         close(file);
+    }
+}
+
+void
+write_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
+{
+    string dirname = string_split_to(filename, string_find_last(filename, '/'));
+    const char *dir = to_c_string(dirname, &scratch);
+
+    if(mkdir(dir, 0777) == 0 || errno == EEXIST)
+    {
+        s32 file = open(to_c_string(filename, &scratch), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+
+        if(file > 0)
+        {
+            write(file, buffer, file_size);
+            close(file);
+        }
     }
 }
 

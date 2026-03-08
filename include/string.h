@@ -50,6 +50,20 @@ string_find_u8(string str, u8 character)
     return(index);
 }
 
+s64 
+string_find_last(string str, u8 character)
+{    
+    s64 index = -1;
+    for(u32 i = str.size-1; i >= 0 && index == -1; --i)
+    {
+        if(str.data[i] == character)
+        {
+            index = i;
+        }
+    }
+    return(index);
+}
+
 /// try to convert the string to a u64 value
 ///
 /// for now this function completely ignores any other characters in the 

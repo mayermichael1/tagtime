@@ -12,6 +12,9 @@ get_file_size(string filename, scratch_memory scratch);
 void
 read_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch);
 
+void
+write_file(string filename, u64 buffer_size, u8 *buffer, scratch_memory scratch);
+
 umm
 allocate(umm size);
 
