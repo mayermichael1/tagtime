@@ -166,28 +166,50 @@ main(u32 argc, u8** argv)
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
     //
-    
-    scratch_memory temp_mem = create_scratch_memory(MB);
-    string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
-    time_data data = data_from_file(file, temp_mem);
 
-    if(argc >= 2)
+    if(argc >= 1) 
     {
-        u64 duration = string_to_minutes(create_string(argv[1]));
-        insert_time_entry(&data, create_entry(duration));
-        data_to_file(file, data, temp_mem);
-    }
-    else
-    {
-        printf("List of tracked times:!\n");
-        for(u32 i = 0; i < data.header.entry_count; ++i)
+        string command = create_string(argv[1]);
+
+        scratch_memory temp_mem = create_scratch_memory(MB);
+        string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
+        time_data data = data_from_file(file, temp_mem);
+
+        if(string_compare(command, create_string("newtag")) == 0)
         {
-            printf("entry at %u with a duration of %u\n", data.data.entries[i].timestamp, data.data.entries[i].minutes);
+            printf("newtag\n");
         }
-
-        //TODO: properly handle arguments before going to logic
+        else if(string_compare(command, create_string("list")) == 0)
+        {
+            printf("List of tracked times:!\n");
+            for(u32 i = 0; i < data.header.entry_count; ++i)
+            {
+                printf("entry at %u with a duration of %u\n", data.data.entries[i].timestamp, data.data.entries[i].minutes);
+            }
+        }
+        else if(string_compare(command, create_string("sum")) == 0)
+        {
+            printf("sum\n");
+        }
+        else if(string_compare(command, create_string("delete")) == 0)
+        {
+            printf("delete\n");
+        }
+        else if(string_compare(command, create_string("addtag")) == 0)
+        {
+            printf("addtag\n");
+        }
+        else if(string_compare(command, create_string("deltag")) == 0)
+        {
+            printf("deltag\n");
+        }
+        else
+        {
+            u64 duration = string_to_minutes(create_string(argv[1]));
+            insert_time_entry(&data, create_entry(duration));
+            data_to_file(file, data, temp_mem);
+        }
     }
-
 
     return(0);
 }

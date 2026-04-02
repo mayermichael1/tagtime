@@ -112,4 +112,17 @@ string_split_to(string str, u32 to)
     return(string_split(str, 0, to));
 }
 
+s8
+string_compare(string str1, string str2)
+{
+    s8 result = str1.size - str2.size;
+
+    for(u32 i=0; result==0 && i<str1.size; ++i)
+    {
+        result = str1.data[i] - str2.data[i];
+    }
+
+    return(result);
+}
+
 #endif
