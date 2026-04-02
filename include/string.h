@@ -3,8 +3,8 @@
 
 typedef struct 
 {
+    u32 size; //NOTE: this needs to be first for serialization
     u8 *data;
-    u32 size;
 }
 string;
 
