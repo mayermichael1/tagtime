@@ -14,7 +14,7 @@
 /// scope is exited the memory returns to its previous state
 /// this only works as long as the scratch does not grow itself
 /// the data is not deleted, only the pointer is returned to the previous position
-typedef struct _scratch_memory
+typedef struct _scratch_memory //NOTE: needed for forward declaration in platform layer
 {
     umm start;  
     umm current; 
