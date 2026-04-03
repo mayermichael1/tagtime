@@ -46,6 +46,13 @@ time_data_pointer;
 
 typedef struct
 {
+    u32 count;
+    string *data;
+}
+cli_arguments;
+
+typedef struct
+{
     time_data_header header; 
     time_data_pointer data;
 }
@@ -291,36 +298,50 @@ main(u32 argc, u8** argv)
     //NOTE: following implementation ignores tags for now and simply creates and
     //stores tags
     //
+    //
+    scratch_memory temp_mem = create_scratch_memory(10 * MB);
 
-    if(argc >= 1) 
+    cli_arguments args = {.count = argc - 1};
+    args.data = PUSH_SCRATCH_ARRAY(&temp_mem, string, args.count);
+    for(u32 i=0; i<argc-1; ++i)
     {
-        string command = create_string(argv[1]);
+        args.data[i] = create_string(argv[i+1]);
+    }
 
-        scratch_memory temp_mem = create_scratch_memory(MB);
+    if(args.count > 0) 
+    {
+        string command = args.data[0];
+
         string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
         time_data data = data_from_file(file, temp_mem);
 
         if(string_compare(command, create_string("newtag")) == 0)
         {
-            if(argc >= 2)
+            // TODO: check if tag already exists
+            if(args.count > 1)
             {
-                string tag = create_string(argv[2]);
+                string tag = args.data[1];
                 ASSERT(tag.size < MAX_NEW_TAG_LENGTH);
                 insert_tag(&data, tag);
             }
         }
         else if(string_compare(command, create_string("list")) == 0)
         {
-            printf("List of tracked times: \n");
-            for(u32 i = 0; i < data.header.entry_count; ++i)
-            {
-                printf("entry at %u with a duration of %u\n", data.data.entries[i].timestamp, data.data.entries[i].minutes);
-            }
+            cli_arguments tag_args = {.count = args.count-1};
+            tag_args.data = &args.data[1];
 
-            printf("List of created tags: \n");
-            for(u32 i=0; i<data.header.tag_count; ++i)
+            if(tag_args.count == 0) //List all available tags
             {
-                printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
+                printf("List of available tags: \n");
+                for(u32 i=0; i<data.header.tag_count; ++i)
+                {
+                    printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
+                }
+            }
+            else // list all time entries connected to tags
+            {
+                //TODO: get_linked_entries_by_tags();
+                //TODO: print all entries returned in the list
             }
         }
         else if(string_compare(command, create_string("sum")) == 0)
@@ -341,24 +362,23 @@ main(u32 argc, u8** argv)
         }
         else
         {
-            string time_string = create_string(argv[1]);
+            string time_string = args.data[0];
+            cli_arguments tag_args = {.count = args.count-1};
+            tag_args.data = &args.data[1];
 
-            u32 tag_count = argc - 2;
-            string *tags = PUSH_SCRATCH_ARRAY(&temp_mem, string, tag_count);
-            for(u32 i=0; i<tag_count; ++i)
+            if(tag_args.count >= 1)
             {
-                tags[i] = create_string(argv[2 + i]);
-            }
-
-            if(tag_count >= 1)
-            {
-                u64 *tag_ids = get_tag_ids(&data, tags, tag_count, &temp_mem);
+                u64 *tag_ids = get_tag_ids(&data, tag_args.data, tag_args.count, &temp_mem);
                 if(tag_ids != NULL)
                 {
                     u64 duration = string_to_minutes(time_string);
                     u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                    link_entry_to_tags(&data, entry_id, tag_ids, tag_count);
+                    link_entry_to_tags(&data, entry_id, tag_ids, tag_args.count);
                 }
+            }
+            else
+            {
+                printf("Time needs to have at least one tag \n");
             }
 
         }
