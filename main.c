@@ -9,7 +9,8 @@
 
 #include "src/linux_platform.c"
 
-#define MAX_NEW_TAG_LENGTH 60
+#define MAX_NEW_TAG_LENGTH  60
+#define MAX_TAG_LINKS       10
 
 typedef struct 
 {
@@ -20,9 +21,17 @@ time_entry;
 
 typedef struct
 {
+    u64 entry_id;
+    u64 tag_id;
+}
+tag_entry_link;
+
+typedef struct
+{
     u64 entry_count;
     u64 tag_count;
     u64 tag_strings_size;
+    u64 tag_entry_table_size;
 }
 time_data_header;
 
@@ -31,6 +40,7 @@ typedef struct
     time_entry *entries;
     string *tags;
     u8* tag_data_store;
+    tag_entry_link *links;
 }
 time_data_pointer;
 
@@ -92,6 +102,15 @@ data_from_file(string filename, scratch_memory temp)
         string_offset += tag->size;
     }
 
+    file_offset += file_data_chunk;
+
+    // link data
+    file_data_chunk = data.header.tag_entry_table_size * sizeof(tag_entry_link);
+    mem = create_scratch_memory(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
+    tag_entry_link *links = PUSH_SCRATCH_ARRAY(&mem, tag_entry_link, data.header.tag_entry_table_size + MAX_TAG_LINKS);
+    read_file_from(filename, file_offset, file_data_chunk, (u8*)links, temp);
+    pointer.links = links;
+
     data.data = pointer;
     return(data);
 }
@@ -109,12 +128,14 @@ data_to_file(string filename, time_data data, scratch_memory temp)
     }
     append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths, temp);
     append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store, temp);
+    append_file(filename, sizeof(tag_entry_link) * data.header.tag_entry_table_size, (u8*)data.data.links, temp);
 }
 
-void
+u64
 insert_time_entry(time_data *data, time_entry entry)
 {
     data->data.entries[data->header.entry_count++] = entry;
+    return(data->header.entry_count);
 }
 
 void
@@ -139,6 +160,56 @@ create_entry(u64 duration)
     entry.timestamp = seconds_since_epoch();
     return(entry);
 }
+
+/**
+ * returns the id for the given tag if exists
+ * 0 instead
+ */
+u64
+get_tag_id(time_data *data, string tag)
+{
+    s64 id = 0;
+    for(u32 i=0; id == 0 && i<data->header.tag_count; ++i)
+    {
+        if(string_compare(tag, data->data.tags[i]) == 0)
+        {
+            id = i+1; 
+        }
+    }
+    return(id);
+}
+
+void
+link_entry_to_tags(time_data *data, u64 entry_id, u64* tag_ids, u64 tag_count)
+{
+    u64 last = data->header.tag_entry_table_size;
+    for(u32 i=0; i<tag_count; ++i)
+    {
+        data->data.links[last+i] = (tag_entry_link){
+            .entry_id = entry_id,
+            .tag_id = tag_ids[i]
+        };
+    }
+    data->header.tag_entry_table_size += tag_count;
+}
+
+u64*
+get_tag_ids(time_data *data, string *tags, u64 tag_count, scratch_memory *memory)
+{
+    //TODO: pop may be needed here when NULL is returned instead of the array
+    u64* ids = PUSH_SCRATCH_ARRAY(memory, u64, tag_count);
+
+    for(u32 i=0; ids!=NULL && i<tag_count; ++i)
+    {
+        ids[i] = get_tag_id(data, tags[i]);
+        if(ids[i] == 0)
+        {
+            ids = NULL;
+        }
+    }
+    return(ids);
+}
+
 
 /// three possible formats:
 /// - if : is found expect 00:00
@@ -271,8 +342,25 @@ main(u32 argc, u8** argv)
         else
         {
             string time_string = create_string(argv[1]);
-            u64 duration = string_to_minutes(time_string);
-            insert_time_entry(&data, create_entry(duration));
+
+            u32 tag_count = argc - 2;
+            string *tags = PUSH_SCRATCH_ARRAY(&temp_mem, string, tag_count);
+            for(u32 i=0; i<tag_count; ++i)
+            {
+                tags[i] = create_string(argv[2 + i]);
+            }
+
+            if(tag_count >= 1)
+            {
+                u64 *tag_ids = get_tag_ids(&data, tags, tag_count, &temp_mem);
+                if(tag_ids != NULL)
+                {
+                    u64 duration = string_to_minutes(time_string);
+                    u64 entry_id = insert_time_entry(&data, create_entry(duration));
+                    link_entry_to_tags(&data, entry_id, tag_ids, tag_count);
+                }
+            }
+
         }
         data_to_file(file, data, temp_mem);
     }

@@ -71,7 +71,7 @@ push_scratch_memory(scratch_memory *scratch, umm size)
 }
 
 #define PUSH_SCRATCH_STRUCT(scratch, structname) (structname*)push_scratch_memory(scratch, sizeof(structname))
-#define PUSH_SCRATCH_ARRAY(scratch, structname, entries) (structname*)push_scratch_memory(scratch, sizeof(structname) * entries)
+#define PUSH_SCRATCH_ARRAY(scratch, structname, entries) (structname*)push_scratch_memory(scratch, sizeof(structname) * (entries))
 
 /// destroy_scratch_memory
 ///
