@@ -13,6 +13,7 @@ INCLUDEDIRS=-I.
 
 .PHONY: binary
 binary: $(BUILDDIR)
+	ctags -R 
 	gcc main.c $(OPT) $(DEBUG) $(LIBS) $(FLAGS) $(INCLUDEDIRS) -o $(BINARY) 
 
 $(BUILDDIR):
