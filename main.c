@@ -21,6 +21,14 @@ time_entry;
 
 typedef struct
 {
+    u64 count;
+    string *tags;
+    u64 *ids;
+}
+tag_array;
+
+typedef struct
+{
     u64 entry_id;
     u64 tag_id;
 }
@@ -187,34 +195,51 @@ get_tag_id(time_data *data, string tag)
 }
 
 void
-link_entry_to_tags(time_data *data, u64 entry_id, u64* tag_ids, u64 tag_count)
+link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
 {
     u64 last = data->header.tag_entry_table_size;
-    for(u32 i=0; i<tag_count; ++i)
+    for(u32 i=0; i<tags.count; ++i)
     {
-        data->data.links[last+i] = (tag_entry_link){
-            .entry_id = entry_id,
-            .tag_id = tag_ids[i]
-        };
-    }
-    data->header.tag_entry_table_size += tag_count;
-}
-
-u64*
-get_tag_ids(time_data *data, string *tags, u64 tag_count, scratch_memory *memory)
-{
-    //TODO: pop may be needed here when NULL is returned instead of the array
-    u64* ids = PUSH_SCRATCH_ARRAY(memory, u64, tag_count);
-
-    for(u32 i=0; ids!=NULL && i<tag_count; ++i)
-    {
-        ids[i] = get_tag_id(data, tags[i]);
-        if(ids[i] == 0)
+        if(tags.ids[i] != 0)
         {
-            ids = NULL;
+            data->data.links[last+i] = (tag_entry_link){
+                .entry_id = entry_id,
+                .tag_id = tags.ids[i]
+            };
         }
     }
-    return(ids);
+    data->header.tag_entry_table_size += tags.count;
+}
+
+b8
+contains_uncreated_tags(tag_array tags)
+{
+    b8 tag_not_existing = false;
+
+    for(u32 i=0; !tag_not_existing && i<tags.count; ++i)
+    {
+        if(tags.ids[i] == 0)
+        {
+            tag_not_existing = true;
+        }
+    }
+
+    return(tag_not_existing);
+}
+
+tag_array
+tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
+{
+    tag_array arr = {};
+    arr.ids = PUSH_SCRATCH_ARRAY(memory, u64, tags.count);
+    arr.tags = tags.data;
+    arr.count = tags.count;
+
+    for(u32 i=0; i<tags.count; ++i)
+    {
+        arr.ids[i] = get_tag_id(data, tags.data[i]);
+    }
+    return(arr);
 }
 
 
@@ -340,6 +365,15 @@ main(u32 argc, u8** argv)
             }
             else // list all time entries connected to tags
             {
+                tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
+                if(contains_uncreated_tags(tags))
+                {
+                    printf("Not all provided tags exist \n");
+                }
+                else
+                {
+                    printf("List should appear here\n");
+                }
                 //TODO: get_linked_entries_by_tags();
                 //TODO: print all entries returned in the list
             }
@@ -366,14 +400,19 @@ main(u32 argc, u8** argv)
             cli_arguments tag_args = {.count = args.count-1};
             tag_args.data = &args.data[1];
 
-            if(tag_args.count >= 1)
+            tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
+
+            if(tags.count != 0)
             {
-                u64 *tag_ids = get_tag_ids(&data, tag_args.data, tag_args.count, &temp_mem);
-                if(tag_ids != NULL)
+                if(!contains_uncreated_tags(tags))
                 {
                     u64 duration = string_to_minutes(time_string);
                     u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                    link_entry_to_tags(&data, entry_id, tag_ids, tag_args.count);
+                    link_entry_to_tags(&data, entry_id, tags);
+                }
+                else
+                {
+                    printf("Not all provided tags exist in the system \n");
                 }
             }
             else
