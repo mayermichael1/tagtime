@@ -29,6 +29,13 @@ tag_array;
 
 typedef struct
 {
+    u64 count;
+    u64 *data;
+}
+u64_array;
+
+typedef struct
+{
     u64 entry_id;
     u64 tag_id;
 }
@@ -240,6 +247,34 @@ tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
         arr.ids[i] = get_tag_id(data, tags.data[i]);
     }
     return(arr);
+}
+
+void
+entries_minus_tag_linked(time_data data, u64_array *entries, u64 tag_id)
+{
+    for(u32 i=0; i<data.header.tag_entry_table_size; ++i)
+    {
+        if(tag_id == data.data.links[i].tag_id)
+        {
+           //TODO: continue here 
+        }
+    }
+}
+
+u64_array
+get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memory)
+{
+    u64_array ids = {.count = data->header.entry_count};
+    ids.data = PUSH_STRUCT_ARRAY(memory, u64, ids.count);
+    for(u32 i=0; i<ids.count; ++i)
+    {
+        ids[i] = i+1;
+    }
+
+    for(u32 i=0; i<tags.count; ++i) 
+    {
+        
+    }
 }
 
 
