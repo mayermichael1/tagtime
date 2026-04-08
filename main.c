@@ -509,6 +509,22 @@ string_to_minutes(string str)
     return(minutes);
 }
 
+/**
+ * return a time_entry by id 
+ *
+ * if id is not found returns an empty time_entry
+ */
+time_entry
+get_entry_by_id(time_data data, u64 entry_id)
+{
+    time_entry entry = {};
+    if(entry_id <= data.header.entry_count)
+    {
+        entry = data.data.entries[entry_id-1];
+    }
+    return(entry);
+}
+
 s32 
 main(u32 argc, u8** argv)
 {
@@ -590,7 +606,9 @@ main(u32 argc, u8** argv)
                     u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
                     for(u32 i=0; i<linked_entries.count; ++i)
                     {
-                        printf("- %d:\n", linked_entries.data[i]);
+                        u64 entry_id = linked_entries.data[i];
+                        time_entry entry = get_entry_by_id(data, entry_id);
+                        printf("%d;%lu;%lu\n",entry_id, entry.timestamp, entry.minutes);
                     }
                     ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
                 }
