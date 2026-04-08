@@ -46,7 +46,7 @@ typedef struct
     u64 entry_count;
     u64 tag_count;
     u64 tag_strings_size;
-    u64 tag_entry_table_size;
+    u64 link_count;
 }
 time_data_header;
 
@@ -127,9 +127,9 @@ data_from_file(string filename, scratch_memory temp)
     file_offset += file_data_chunk;
 
     // link data
-    file_data_chunk = data.header.tag_entry_table_size * sizeof(tag_entry_link);
+    file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
     mem = create_scratch_memory(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
-    tag_entry_link *links = PUSH_SCRATCH_ARRAY(&mem, tag_entry_link, data.header.tag_entry_table_size + MAX_TAG_LINKS);
+    tag_entry_link *links = PUSH_SCRATCH_ARRAY(&mem, tag_entry_link, data.header.link_count + MAX_TAG_LINKS);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)links, temp);
     pointer.links = links;
 
@@ -150,7 +150,7 @@ data_to_file(string filename, time_data data, scratch_memory temp)
     }
     append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths, temp);
     append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store, temp);
-    append_file(filename, sizeof(tag_entry_link) * data.header.tag_entry_table_size, (u8*)data.data.links, temp);
+    append_file(filename, sizeof(tag_entry_link) * data.header.link_count, (u8*)data.data.links, temp);
 }
 
 u64
@@ -204,7 +204,7 @@ get_tag_id(time_data *data, string tag)
 void
 link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
 {
-    u64 last = data->header.tag_entry_table_size;
+    u64 last = data->header.link_count;
     for(u32 i=0; i<tags.count; ++i)
     {
         if(tags.ids[i] != 0)
@@ -215,7 +215,7 @@ link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
             };
         }
     }
-    data->header.tag_entry_table_size += tags.count;
+    data->header.link_count += tags.count;
 }
 
 b8
@@ -249,34 +249,122 @@ tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
     return(arr);
 }
 
-void
-entries_minus_tag_linked(time_data data, u64_array *entries, u64 tag_id)
+u64_array
+create_incrementing_array(scratch_memory *memory, u64 count)
 {
-    for(u32 i=0; i<data.header.tag_entry_table_size; ++i)
+    u64_array arr = {.count = count};
+    arr.data = PUSH_SCRATCH_ARRAY(memory, u64, arr.count);
+    for(u32 i=0; i<arr.count; ++i)
     {
-        if(tag_id == data.data.links[i].tag_id)
+        arr.data[i] = i+1;
+    }
+    return(arr);
+}
+
+u64_array
+entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
+{
+    u64_array entries = {};
+    //NOTE: entries will never be larger than all entries so reserve this amount of space
+    entries.data = PUSH_SCRATCH_ARRAY(memory, u64, data.header.entry_count);
+
+    for(u32 i=0; i<data.header.link_count; ++i)
+    {
+        tag_entry_link link = data.data.links[i];
+        if(link.tag_id == tagid)
         {
-           //TODO: continue here 
+            entries.data[entries.count] = link.entry_id;
+            entries.count++;
         }
     }
+    return(entries);
+}
+
+void
+arr_remove_idx(u64_array *arr, u64 idx)
+{
+    u64_array newarr = *arr;
+    if(idx < newarr.count)
+    {
+        for(u64 i = idx; i<newarr.count-1; ++i)
+        {
+            newarr.data[i] = newarr.data[i+1];
+        }
+        newarr.count--;
+    }
+    *arr = newarr;
+}
+
+/**
+ * remove all elements matching a value from the array
+ */
+void
+arr_remove_values(u64_array *arr, u64 element)
+{
+    u64_array collapsed = *arr;
+    u64 i = 0;
+    while(i < collapsed.count)
+    {
+        if(collapsed.data[i] == element)
+        {
+            arr_remove_idx(&collapsed, i);
+        }
+        else
+        {
+            ++i;
+        }
+    }
+    *arr = collapsed;
+}
+
+/***
+ * this will intersect array a and b with only common entries
+ *
+ * all 0 entries will be ignored as these are not valid entry_ids
+ *
+ * @param   pointer to first array, data will actually be changed
+ * @param   second array, stays the sae
+ */
+void
+intersect_arrays(u64_array *a, u64_array b)
+{
+    u64_array intersect = *a;
+    for(u64 i=0; i<intersect.count; ++i)
+    {
+        b8 element_found = false;
+
+        for(u64 y=0; y<b.count; ++y)
+        {
+            if(intersect.data[i] == b.data[y])
+            {
+                element_found = true;
+            }
+        }
+
+        if(!element_found)
+        {
+            intersect.data[i] = 0;
+        }
+    }
+
+    arr_remove_values(&intersect, 0);
+
+    *a = intersect;
 }
 
 u64_array
 get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memory)
 {
-    /*
-    u64_array ids = {.count = data->header.entry_count};
-    ids.data = PUSH_STRUCT_ARRAY(memory, u64, ids.count);
-    for(u32 i=0; i<ids.count; ++i)
-    {
-        ids[i] = i+1;
-    }
+    u64_array indices = create_incrementing_array(memory, data.header.entry_count);
 
     for(u32 i=0; i<tags.count; ++i) 
     {
-        
+        scratch_memory loop_local_mem = *memory;
+        u64 tag_id = tags.ids[i];
+        u64_array entries_for_tag = entries_linked_to_tag(data, tag_id, &loop_local_mem); 
+        intersect_arrays(&indices, entries_for_tag);
     }
-    */
+    return(indices);
 }
 
 
@@ -407,7 +495,14 @@ main(u32 argc, u8** argv)
                 }
                 else
                 {
-                    printf("List should appear here\n");
+                    printf("Linekd entry ids:\n");
+                    umm before = temp_mem.current;
+                    u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
+                    for(u32 i=0; i<linked_entries.count; ++i)
+                    {
+                        printf("- %d:\n", linked_entries.data[i]);
+                    }
+                    ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
                 }
                 //TODO: get_linked_entries_by_tags();
                 //TODO: print all entries returned in the list
