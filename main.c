@@ -23,7 +23,8 @@ typedef struct
 {
     u64 count;
     string *tags;
-    u64 *ids;
+    u64 *ids; //NOTE: this is an containing the ids for the tags in *tags 
+              //        0 means it does not exist
 }
 tag_array;
 
@@ -73,6 +74,17 @@ typedef struct
 }
 time_data;
 
+/**
+ * read data from data_file
+ *
+ * this will allocate memory to actually hold the data
+ *
+ * @param   filename filename to load the data from
+ * @param   temp    memory arena used for temporary tasks  
+ *          //TODO: remove these kind of temp mem usages
+ *  
+ * @return  time_data struct containing the read data
+ */
 time_data 
 data_from_file(string filename, scratch_memory temp)
 {
@@ -137,6 +149,14 @@ data_from_file(string filename, scratch_memory temp)
     return(data);
 }
 
+/**
+ * write time_data to a file 
+ *
+ * @param   filename to be written to
+ * @param   time_data struct containing the actual data
+ * @param   temp_memory needed for file_writes
+ *          //TODO: remove temp_memory usage
+ */
 void 
 data_to_file(string filename, time_data data, scratch_memory temp)
 {
@@ -153,6 +173,14 @@ data_to_file(string filename, time_data data, scratch_memory temp)
     append_file(filename, sizeof(tag_entry_link) * data.header.link_count, (u8*)data.data.links, temp);
 }
 
+/**
+ * insert a new time_entry to the data structure
+ *
+ * @param   data pointer
+ * @param   entry to be inserted
+ *
+ * @return  index of the newly created entry (index in array + 1)
+ */
 u64
 insert_time_entry(time_data *data, time_entry entry)
 {
@@ -160,20 +188,41 @@ insert_time_entry(time_data *data, time_entry entry)
     return(data->header.entry_count);
 }
 
+/**
+ * insert a new tag to the data structure
+ *
+ * this will copy the contents of the given string into the tags store
+ *
+ * @param   data pointer
+ * @param   tag name to be inserted as a new tag
+ */
 void
-insert_tag(time_data *data, string tag)
+insert_tag(time_data *data, string tagname)
 {
     u64 tag_store_size = data->header.tag_strings_size;
-    for(u32 i=0; i<tag.size; ++i)
+    u8 *newtag_data_pointer = &data->data.tag_data_store[tag_store_size];
+    for(u32 i=0; i<tagname.size; ++i)
     {
-        data->data.tag_data_store[tag_store_size+i] = tag.data[i];
+        newtag_data_pointer[i] = tagname.data[i];
     }
-    tag.data = &data->data.tag_data_store[tag_store_size];
-    data->header.tag_strings_size+=tag.size;
 
-    data->data.tags[data->header.tag_count++] = tag;
+    string tag = {};
+    tag.size = tagname.size;
+    tag.data = newtag_data_pointer; 
+
+    data->header.tag_strings_size+=tagname.size;
+
+    data->data.tags[data->header.tag_count] = tag;
+    data->header.tag_count++;
 }
 
+/**
+ * create a new time_entry with a duration
+ *
+ * @param   duration in minutes for this entry
+ *
+ * @return  time_entry structure containing the duration and the current timestamp
+ */
 time_entry
 create_entry(u64 duration)
 {
@@ -184,16 +233,18 @@ create_entry(u64 duration)
 }
 
 /**
- * returns the id for the given tag if exists
- * 0 instead
+ * returns the id for the given tag if exists 0 instead
+ *
+ * @param   data structure to get the id from
+ * @param   tagname which will be searched for
  */
 u64
-get_tag_id(time_data *data, string tag)
+get_tag_id(time_data data, string tag)
 {
     s64 id = 0;
-    for(u32 i=0; id == 0 && i<data->header.tag_count; ++i)
+    for(u32 i=0; id == 0 && i<data.header.tag_count; ++i)
     {
-        if(string_compare(tag, data->data.tags[i]) == 0)
+        if(string_compare(tag, data.data.tags[i]) == 0)
         {
             id = i+1; 
         }
@@ -201,6 +252,19 @@ get_tag_id(time_data *data, string tag)
     return(id);
 }
 
+/**
+ * given an entry_id link up with given tags array
+ *
+ * tags_array contains an index array. If the index for one tag is 0 it is not 
+ * contained in the data structure and therefore will not be linked.
+ *
+ *  //TODO: this expects the ids to already be set, this might be find as 
+ *          tag_array contains this.
+ *
+ * @param   data structure
+ * @param   entry_id entry to be linked
+ * @param   tags array containing all arrays to be linked to
+ */
 void
 link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
 {
@@ -218,6 +282,12 @@ link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
     data->header.link_count += tags.count;
 }
 
+/**
+ * @param   tags array
+ *
+ * @return  returns false if at least one of the ids in the tags are 0 
+ *          true otherwise
+ */
 b8
 contains_uncreated_tags(tag_array tags)
 {
@@ -234,6 +304,9 @@ contains_uncreated_tags(tag_array tags)
     return(tag_not_existing);
 }
 
+/**
+ * takes an array of cli_argumnts (essentially string array) and create a
+ */
 tag_array
 tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
 {
@@ -244,11 +317,14 @@ tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
 
     for(u32 i=0; i<tags.count; ++i)
     {
-        arr.ids[i] = get_tag_id(data, tags.data[i]);
+        arr.ids[i] = get_tag_id(*data, tags.data[i]);
     }
     return(arr);
 }
 
+/**
+ * allocate a new array with incrementing numbers up to count
+ */
 u64_array
 create_incrementing_array(scratch_memory *memory, u64 count)
 {
@@ -261,6 +337,12 @@ create_incrementing_array(scratch_memory *memory, u64 count)
     return(arr);
 }
 
+/**
+ * this functions determines all entry_ids that are linked to a given tag
+ *
+ * allocates a new array which reserves the memory to contain all entries 
+ * but ultimately only "contains" (count) the linked entries
+ */
 u64_array
 entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
 {
@@ -280,6 +362,9 @@ entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
     return(entries);
 }
 
+/**
+ * "remove" a given index from an array be shifting the rest of the array down
+ */
 void
 arr_remove_idx(u64_array *arr, u64 idx)
 {
@@ -352,6 +437,11 @@ intersect_arrays(u64_array *a, u64_array b)
     *a = intersect;
 }
 
+/**
+ * returns a list of entry_ids that are linked to all given tags 
+ *
+ * allocates one array that could hold all created entries
+ */
 u64_array
 get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memory)
 {
@@ -496,7 +586,7 @@ main(u32 argc, u8** argv)
                 else
                 {
                     printf("Linekd entry ids:\n");
-                    umm before = temp_mem.current;
+                    umm before = temp_mem.current; //TODO: for assertation may be removed
                     u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
                     for(u32 i=0; i<linked_entries.count; ++i)
                     {
@@ -504,8 +594,6 @@ main(u32 argc, u8** argv)
                     }
                     ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
                 }
-                //TODO: get_linked_entries_by_tags();
-                //TODO: print all entries returned in the list
             }
         }
         else if(string_compare(command, create_string("sum")) == 0)
