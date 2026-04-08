@@ -264,6 +264,7 @@ entries_minus_tag_linked(time_data data, u64_array *entries, u64 tag_id)
 u64_array
 get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memory)
 {
+    /*
     u64_array ids = {.count = data->header.entry_count};
     ids.data = PUSH_STRUCT_ARRAY(memory, u64, ids.count);
     for(u32 i=0; i<ids.count; ++i)
@@ -275,6 +276,7 @@ get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memor
     {
         
     }
+    */
 }
 
 
@@ -354,11 +356,9 @@ main(u32 argc, u8** argv)
     // - create new tag
     // - query tag(s)
     // - edit an existing entry
-    
-    //NOTE: following implementation ignores tags for now and simply creates and
-    //stores tags
-    //
-    //
+
+    //TODO: most of this is not actually used as a scratch temp memory but as general 
+    //      allocator
     scratch_memory temp_mem = create_scratch_memory(10 * MB);
 
     cli_arguments args = {.count = argc - 1};
