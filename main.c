@@ -73,6 +73,8 @@ main(u32 argc, u8** argv)
 
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
+    set_platform_arena(create_mem_arena(KB));
+
     mem_arena temp_mem = create_mem_arena(10 * MB);
 
     string_array args = {.count = argc - 1};
@@ -82,21 +84,18 @@ main(u32 argc, u8** argv)
         args.data[i] = create_string(argv[i+1]);
     }
 
-    string file;
+    string file = {};
 
     // check for alternative filename
-    if(args.count > 1)
+    if(args.count > 1 && string_compare(args.data[0], create_string("-f")) == 0)
     {
-        if(string_compare(args.data[0], create_string("-f")) == 0)
-        {
-            file = args.data[1];
-            args.count = args.count - 2;
-            args.data = &args.data[2];
-        }
-        else
-        {
-            file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
-        }
+        file = args.data[1];
+        args.count = args.count - 2;
+        args.data = &args.data[2];
+    }
+    else
+    {
+        file = string_append(get_data_directory(), create_string("tagtime.data"), &temp_mem);
     }
 
 

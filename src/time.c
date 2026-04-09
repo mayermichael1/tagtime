@@ -18,7 +18,7 @@ data_from_file(string filename, mem_arena temp)
 
     mem_arena mem = create_mem_arena(sizeof(time_data_header));
     time_data_header *header = ARENA_PUSH_STRUCT(&mem, time_data_header);
-    read_file(filename, sizeof(time_data_header), (u8*)header, temp);
+    read_file(filename, sizeof(time_data_header), (u8*)header);
 
     data.header = *header; 
     
@@ -30,14 +30,14 @@ data_from_file(string filename, mem_arena temp)
     u64 file_data_chunk = data.header.entry_count * sizeof(time_entry);
     mem = create_mem_arena(file_data_chunk + sizeof(time_entry));
     time_entry *entries = ARENA_PUSH_ARRAY(&mem, time_entry, data.header.entry_count + 1);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)entries ,temp); 
+    read_file_from(filename, file_offset, file_data_chunk, (u8*)entries); 
     pointer.entries = entries;
 
     file_offset += file_data_chunk;
     // string lenghts 
     file_data_chunk = data.header.tag_count * sizeof(u32);
     u32 *tag_lengths = ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_lengths, temp);
+    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_lengths);
 
     file_offset += file_data_chunk;
 
@@ -45,7 +45,7 @@ data_from_file(string filename, mem_arena temp)
     file_data_chunk = data.header.tag_strings_size;
     mem = create_mem_arena(file_data_chunk + MAX_NEW_TAG_LENGTH);
     u8 *tag_data = ARENA_PUSH_ARRAY(&mem, u8, data.header.tag_strings_size + MAX_NEW_TAG_LENGTH);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data, temp);
+    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data);
     pointer.tag_data_store = tag_data;
 
     mem = create_mem_arena(sizeof(string) * (data.header.tag_count + 1));
@@ -68,7 +68,7 @@ data_from_file(string filename, mem_arena temp)
     file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
     mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
     tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, data.header.link_count + MAX_TAG_LINKS);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)links, temp);
+    read_file_from(filename, file_offset, file_data_chunk, (u8*)links);
     pointer.links = links;
 
     data.data = pointer;
@@ -86,17 +86,17 @@ data_from_file(string filename, mem_arena temp)
 void 
 data_to_file(string filename, time_data data, mem_arena temp)
 {
-    write_file(filename, sizeof(data.header), (u8*)&data.header, temp);
-    append_file(filename, sizeof(time_entry) * data.header.entry_count, (u8*)data.data.entries, temp);
+    write_file(filename, sizeof(data.header), (u8*)&data.header);
+    append_file(filename, sizeof(time_entry) * data.header.entry_count, (u8*)data.data.entries);
 
     u32 *tag_lengths = ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
     for(u32 i = 0; i < data.header.tag_count; ++i)
     {
         tag_lengths[i] = data.data.tags[i].size;
     }
-    append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths, temp);
-    append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store, temp);
-    append_file(filename, sizeof(tag_entry_link) * data.header.link_count, (u8*)data.data.links, temp);
+    append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths);
+    append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store);
+    append_file(filename, sizeof(tag_entry_link) * data.header.link_count, (u8*)data.data.links);
 }
 
 /**

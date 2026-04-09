@@ -54,11 +54,14 @@ s64
 string_find_last(string str, u8 character)
 {    
     s64 index = -1;
-    for(u32 i = str.size-1; i >= 0 && index == -1; --i)
+    if(str.size != 0)
     {
-        if(str.data[i] == character)
+        for(u32 i = str.size-1; i >= 0 && index == -1; --i)
         {
-            index = i;
+            if(str.data[i] == character)
+            {
+                index = i;
+            }
         }
     }
     return(index);

@@ -10,11 +10,19 @@
 
 #include "include/string_memory.h"
 
+global_variable mem_arena platform_local_temp_mem;
+
+void
+set_platform_arena(mem_arena arena)
+{
+    platform_local_temp_mem = arena;
+}
+
 u64 
-get_file_size(string filename, mem_arena scratch)
+get_file_size(string filename)
 {
     struct stat st;
-    const char *cfile = to_c_string(filename, &scratch);
+    const char *cfile = to_c_string(filename, &platform_local_temp_mem);
     u64 filesize = 0;
     if(stat(cfile, &st)==0)
     {
@@ -24,15 +32,15 @@ get_file_size(string filename, mem_arena scratch)
 }
 
 void
-read_file(string filename, u64 len, u8 *buffer, mem_arena scratch)
+read_file(string filename, u64 len, u8 *buffer)
 {
-    read_file_from(filename, 0, len, buffer, scratch);
+    read_file_from(filename, 0, len, buffer);
 }
 
 void
-read_file_from(string filename, u64 from, u64 len, u8 *buffer, mem_arena scratch)
+read_file_from(string filename, u64 from, u64 len, u8 *buffer)
 {
-    s32 file = open(to_c_string(filename, &scratch), O_RDONLY);
+    s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_RDONLY);
 
     if(file > 0)
     {
@@ -43,14 +51,14 @@ read_file_from(string filename, u64 from, u64 len, u8 *buffer, mem_arena scratch
 }
 
 void
-write_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
+write_file(string filename, u64 file_size, u8 *buffer)
 {
     string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    const char *dir = to_c_string(dirname, &scratch);
+    const char *dir = to_c_string(dirname, &platform_local_temp_mem);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
     {
-        s32 file = open(to_c_string(filename, &scratch), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+        s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_WRONLY | O_CREAT | O_TRUNC, 0777);
 
         if(file > 0)
         {
@@ -62,14 +70,14 @@ write_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
 
 //TODO: massive code duplication from write_file
 void
-append_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
+append_file(string filename, u64 file_size, u8 *buffer)
 {
     string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    const char *dir = to_c_string(dirname, &scratch);
+    const char *dir = to_c_string(dirname, &platform_local_temp_mem);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
     {
-        s32 file = open(to_c_string(filename, &scratch), O_WRONLY | O_CREAT | O_APPEND, 0777);
+        s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_WRONLY | O_CREAT | O_APPEND, 0777);
 
         if(file > 0)
         {
@@ -105,7 +113,7 @@ seconds_since_epoch()
 }
 
 string
-get_data_directory(mem_arena *scratch)
+get_data_directory()
 {
     string dir = create_string(getenv("XDG_DATA_HOME"));
     // TODO: determinine application name dynamically somehow
@@ -114,11 +122,11 @@ get_data_directory(mem_arena *scratch)
     if(dir.size == 0)
     {
         dir = create_string(getenv("HOME"));
-        dir = string_append(dir, create_string("/.local/share/tagtime/"), scratch);
+        dir = string_append(dir, create_string("/.local/share/tagtime/"), &platform_local_temp_mem);
     }
     else
     {
-        dir = string_append(dir, create_string("/tagtime/"), scratch);
+        dir = string_append(dir, create_string("/tagtime/"), &platform_local_temp_mem);
     }
     return(dir);
 }
