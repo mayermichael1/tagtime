@@ -6,6 +6,7 @@
 #include "include/math.h"
 #include "include/string.h"
 #include "include/string_memory.h"
+#include "include/arrays.h"
 
 #include "src/linux_platform.c"
 
@@ -40,13 +41,6 @@ tag_array;
 
 typedef struct
 {
-    u64 count;
-    u64 *data;
-}
-u64_array;
-
-typedef struct
-{
     u64 entry_id;
     u64 tag_id;
 }
@@ -69,13 +63,6 @@ typedef struct
     tag_entry_link *links;
 }
 time_data_pointer;
-
-typedef struct
-{
-    u32 count;
-    string *data;
-}
-cli_arguments;
 
 typedef struct
 {
@@ -351,7 +338,7 @@ contains_uncreated_tags(tag_array tags)
  * takes an array of cli_argumnts (essentially string array) and create a
  */
 tag_array
-tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
+tags_to_array(time_data *data, string_array tags, scratch_memory *memory)
 {
     tag_array arr = {};
     arr.ids = PUSH_SCRATCH_ARRAY(memory, u64, tags.count);
@@ -361,21 +348,6 @@ tags_to_array(time_data *data, cli_arguments tags, scratch_memory *memory)
     for(u32 i=0; i<tags.count; ++i)
     {
         arr.ids[i] = get_tag_id(*data, tags.data[i]);
-    }
-    return(arr);
-}
-
-/**
- * allocate a new array with incrementing numbers up to count
- */
-u64_array
-create_incrementing_array(scratch_memory *memory, u64 count)
-{
-    u64_array arr = {.count = count};
-    arr.data = PUSH_SCRATCH_ARRAY(memory, u64, arr.count);
-    for(u32 i=0; i<arr.count; ++i)
-    {
-        arr.data[i] = i+1;
     }
     return(arr);
 }
@@ -405,80 +377,6 @@ entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
     return(entries);
 }
 
-/**
- * "remove" a given index from an array be shifting the rest of the array down
- */
-void
-arr_remove_idx(u64_array *arr, u64 idx)
-{
-    u64_array newarr = *arr;
-    if(idx < newarr.count)
-    {
-        for(u64 i = idx; i<newarr.count-1; ++i)
-        {
-            newarr.data[i] = newarr.data[i+1];
-        }
-        newarr.count--;
-    }
-    *arr = newarr;
-}
-
-/**
- * remove all elements matching a value from the array
- */
-void
-arr_remove_values(u64_array *arr, u64 element)
-{
-    u64_array collapsed = *arr;
-    u64 i = 0;
-    while(i < collapsed.count)
-    {
-        if(collapsed.data[i] == element)
-        {
-            arr_remove_idx(&collapsed, i);
-        }
-        else
-        {
-            ++i;
-        }
-    }
-    *arr = collapsed;
-}
-
-/***
- * this will intersect array a and b with only common entries
- *
- * all 0 entries will be ignored as these are not valid entry_ids
- *
- * @param   pointer to first array, data will actually be changed
- * @param   second array, stays the sae
- */
-void
-intersect_arrays(u64_array *a, u64_array b)
-{
-    u64_array intersect = *a;
-    for(u64 i=0; i<intersect.count; ++i)
-    {
-        b8 element_found = false;
-
-        for(u64 y=0; y<b.count; ++y)
-        {
-            if(intersect.data[i] == b.data[y])
-            {
-                element_found = true;
-            }
-        }
-
-        if(!element_found)
-        {
-            intersect.data[i] = 0;
-        }
-    }
-
-    arr_remove_values(&intersect, 0);
-
-    *a = intersect;
-}
 
 /**
  * returns a list of entry_ids that are linked to all given tags 
@@ -618,7 +516,7 @@ main(u32 argc, u8** argv)
     //      allocator
     scratch_memory temp_mem = create_scratch_memory(10 * MB);
 
-    cli_arguments args = {.count = argc - 1};
+    string_array args = {.count = argc - 1};
     args.data = PUSH_SCRATCH_ARRAY(&temp_mem, string, args.count);
     for(u32 i=0; i<argc-1; ++i)
     {
@@ -649,7 +547,7 @@ main(u32 argc, u8** argv)
 
         command cmd = argument_to_command(args.data[0]);
 
-        cli_arguments tag_args = {.count = args.count-1};
+        string_array tag_args = {.count = args.count-1};
         tag_args.data = &args.data[1];
         tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
 
