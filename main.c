@@ -71,10 +71,9 @@ main(u32 argc, u8** argv)
     // - query tag(s)
     // - edit an existing entry
 
+    set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
-    set_platform_arena(create_mem_arena(KB));
-
     mem_arena temp_mem = create_mem_arena(10 * MB);
 
     string_array args = {.count = argc - 1};

@@ -6,6 +6,19 @@
 
 typedef struct _mem_arena mem_arena;
 
+/**
+ * this sets the memory arena the platform code uses for various tasks
+ *
+ * this memory arena has to be set or the platform layer will crash
+ * currently most functions need this memory for temporaray allocations while 
+ * performing the task, only data directory actually allocates "permanent" 
+ * memory
+ *
+ * //TODO: this should later assure that the memory arena is growable. 
+ *          in this case the memory could be created in the platform layer and 
+ *          will never run out. 
+ *          platform layer will never need much memory anyways
+ */
 void
 set_platform_arena(mem_arena arena);
 
