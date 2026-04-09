@@ -12,12 +12,12 @@
  * @return  time_data struct containing the read data
  */
 time_data 
-data_from_file(string filename, scratch_memory temp)
+data_from_file(string filename, mem_arena temp)
 {
     time_data data;
 
-    scratch_memory mem = create_scratch_memory(sizeof(time_data_header));
-    time_data_header *header = PUSH_SCRATCH_STRUCT(&mem, time_data_header);
+    mem_arena mem = create_mem_arena(sizeof(time_data_header));
+    time_data_header *header = ARENA_PUSH_STRUCT(&mem, time_data_header);
     read_file(filename, sizeof(time_data_header), (u8*)header, temp);
 
     data.header = *header; 
@@ -28,28 +28,28 @@ data_from_file(string filename, scratch_memory temp)
     // time_entries
     u64 file_offset = sizeof(time_data_header);
     u64 file_data_chunk = data.header.entry_count * sizeof(time_entry);
-    mem = create_scratch_memory(file_data_chunk + sizeof(time_entry));
-    time_entry *entries = PUSH_SCRATCH_ARRAY(&mem, time_entry, data.header.entry_count + 1);
+    mem = create_mem_arena(file_data_chunk + sizeof(time_entry));
+    time_entry *entries = ARENA_PUSH_ARRAY(&mem, time_entry, data.header.entry_count + 1);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)entries ,temp); 
     pointer.entries = entries;
 
     file_offset += file_data_chunk;
     // string lenghts 
     file_data_chunk = data.header.tag_count * sizeof(u32);
-    u32 *tag_lengths = PUSH_SCRATCH_ARRAY(&temp, u32, data.header.tag_count);
+    u32 *tag_lengths = ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_lengths, temp);
 
     file_offset += file_data_chunk;
 
     // string data
     file_data_chunk = data.header.tag_strings_size;
-    mem = create_scratch_memory(file_data_chunk + MAX_NEW_TAG_LENGTH);
-    u8 *tag_data = PUSH_SCRATCH_ARRAY(&mem, u8, data.header.tag_strings_size + MAX_NEW_TAG_LENGTH);
+    mem = create_mem_arena(file_data_chunk + MAX_NEW_TAG_LENGTH);
+    u8 *tag_data = ARENA_PUSH_ARRAY(&mem, u8, data.header.tag_strings_size + MAX_NEW_TAG_LENGTH);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data, temp);
     pointer.tag_data_store = tag_data;
 
-    mem = create_scratch_memory(sizeof(string) * (data.header.tag_count + 1));
-    string *tags = PUSH_SCRATCH_ARRAY(&mem, string, data.header.tag_count + 1);
+    mem = create_mem_arena(sizeof(string) * (data.header.tag_count + 1));
+    string *tags = ARENA_PUSH_ARRAY(&mem, string, data.header.tag_count + 1);
     pointer.tags = tags;
 
     // link up strings with data
@@ -66,8 +66,8 @@ data_from_file(string filename, scratch_memory temp)
 
     // link data
     file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
-    mem = create_scratch_memory(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
-    tag_entry_link *links = PUSH_SCRATCH_ARRAY(&mem, tag_entry_link, data.header.link_count + MAX_TAG_LINKS);
+    mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
+    tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, data.header.link_count + MAX_TAG_LINKS);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)links, temp);
     pointer.links = links;
 
@@ -84,12 +84,12 @@ data_from_file(string filename, scratch_memory temp)
  *          //TODO: remove temp_memory usage
  */
 void 
-data_to_file(string filename, time_data data, scratch_memory temp)
+data_to_file(string filename, time_data data, mem_arena temp)
 {
     write_file(filename, sizeof(data.header), (u8*)&data.header, temp);
     append_file(filename, sizeof(time_entry) * data.header.entry_count, (u8*)data.data.entries, temp);
 
-    u32 *tag_lengths = PUSH_SCRATCH_ARRAY(&temp, u32, data.header.tag_count);
+    u32 *tag_lengths = ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
     for(u32 i = 0; i < data.header.tag_count; ++i)
     {
         tag_lengths[i] = data.data.tags[i].size;
@@ -237,11 +237,11 @@ contains_uncreated_tags(tag_array tags)
  * but ultimately only "contains" (count) the linked entries
  */
 u64_array
-entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
+entries_linked_to_tag(time_data data, u64 tagid, mem_arena *memory)
 {
     u64_array entries = {};
     //NOTE: entries will never be larger than all entries so reserve this amount of space
-    entries.data = PUSH_SCRATCH_ARRAY(memory, u64, data.header.entry_count);
+    entries.data = ARENA_PUSH_ARRAY(memory, u64, data.header.entry_count);
 
     for(u32 i=0; i<data.header.link_count; ++i)
     {
@@ -262,13 +262,13 @@ entries_linked_to_tag(time_data data, u64 tagid, scratch_memory *memory)
  * allocates one array that could hold all created entries
  */
 u64_array
-get_entries_linked_to_tags(time_data data, tag_array tags, scratch_memory *memory)
+get_entries_linked_to_tags(time_data data, tag_array tags, mem_arena *memory)
 {
     u64_array indices = create_incrementing_array(memory, data.header.entry_count);
 
     for(u32 i=0; i<tags.count; ++i) 
     {
-        scratch_memory loop_local_mem = *memory;
+        mem_arena loop_local_mem = *memory;
         u64 tag_id = tags.ids[i];
         u64_array entries_for_tag = entries_linked_to_tag(data, tag_id, &loop_local_mem); 
         intersect_arrays(&indices, entries_for_tag);
@@ -368,10 +368,10 @@ minute_to_time(u64 minutes)
  * takes an array of cli_argumnts (essentially string array) and create a
  */
 tag_array
-tags_to_array(time_data *data, string_array tags, scratch_memory *memory)
+tags_to_array(time_data *data, string_array tags, mem_arena *memory)
 {
     tag_array arr = {};
-    arr.ids = PUSH_SCRATCH_ARRAY(memory, u64, tags.count);
+    arr.ids = ARENA_PUSH_ARRAY(memory, u64, tags.count);
     arr.tags = tags.data;
     arr.count = tags.count;
 

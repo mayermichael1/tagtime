@@ -4,9 +4,9 @@
 #include "memory.h"
 
 const char *
-to_c_string(string str, scratch_memory *scratch)
+to_c_string(string str, mem_arena *scratch)
 {
-    u8* cstring = PUSH_SCRATCH_ARRAY(scratch, u8, (str.size+1));
+    u8* cstring = ARENA_PUSH_ARRAY(scratch, u8, (str.size+1));
     for(u32 i = 0; i < str.size; ++i)
     {
         cstring[i] = str.data[i];
@@ -26,10 +26,10 @@ to_c_string(string str, scratch_memory *scratch)
 //TODO: test this function
 /*
 string 
-string_copy(string str, scratch_memory *scratch)
+string_copy(string str, mem_arena *scratch)
 {
     string memstr = {};
-    memstr.data = PUSH_SCRATCH_ARRAY(scratch, u8, str.size);
+    memstr.data = ARENA_PUSH_ARRAY(scratch, u8, str.size);
     memstr.size = str.size;
     for(u32 i = 0; i < str.size; ++i)
     {
@@ -41,11 +41,11 @@ string_copy(string str, scratch_memory *scratch)
 
 
 string
-string_append(string str1, string str2, scratch_memory *scratch)
+string_append(string str1, string str2, mem_arena *scratch)
 {
     string appended = {};
     appended.size = str1.size+str2.size;
-    appended.data = PUSH_SCRATCH_ARRAY(scratch, u8, appended.size);
+    appended.data = ARENA_PUSH_ARRAY(scratch, u8, appended.size);
     for(u32 i = 0; i < str1.size; ++i)
     {
         appended.data[i] = str1.data[i];

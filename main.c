@@ -73,10 +73,10 @@ main(u32 argc, u8** argv)
 
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
-    scratch_memory temp_mem = create_scratch_memory(10 * MB);
+    mem_arena temp_mem = create_mem_arena(10 * MB);
 
     string_array args = {.count = argc - 1};
-    args.data = PUSH_SCRATCH_ARRAY(&temp_mem, string, args.count);
+    args.data = ARENA_PUSH_ARRAY(&temp_mem, string, args.count);
     for(u32 i=0; i<argc-1; ++i)
     {
         args.data[i] = create_string(argv[i+1]);
@@ -127,7 +127,7 @@ main(u32 argc, u8** argv)
                     printf("List of available tags: \n");
                     for(u32 i=0; i<data.header.tag_count; ++i)
                     {
-                        scratch_memory temp = temp_mem;
+                        mem_arena temp = temp_mem;
                         printf(" - %s\n", to_c_string(data.data.tags[i], &temp));
                     }
                 }

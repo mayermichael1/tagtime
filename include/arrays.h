@@ -21,10 +21,10 @@ string_array;
  * allocate a new array with incrementing numbers up to count
  */
 u64_array
-create_incrementing_array(scratch_memory *memory, u64 count)
+create_incrementing_array(mem_arena *memory, u64 count)
 {
     u64_array arr = {.count = count};
-    arr.data = PUSH_SCRATCH_ARRAY(memory, u64, arr.count);
+    arr.data = ARENA_PUSH_ARRAY(memory, u64, arr.count);
     for(u32 i=0; i<arr.count; ++i)
     {
         arr.data[i] = i+1;
@@ -80,6 +80,8 @@ arr_remove_values(u64_array *arr, u64 element)
  * @param   pointer to first array, data will actually be changed
  * @param   second array, stays the sae
  */
+//TODO: currently sets values to 0 which is not needed. change this so it can be 
+//used generally
 void
 intersect_arrays(u64_array *a, u64_array b)
 {

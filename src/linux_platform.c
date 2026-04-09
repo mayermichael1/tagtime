@@ -11,7 +11,7 @@
 #include "include/string_memory.h"
 
 u64 
-get_file_size(string filename, scratch_memory scratch)
+get_file_size(string filename, mem_arena scratch)
 {
     struct stat st;
     const char *cfile = to_c_string(filename, &scratch);
@@ -23,13 +23,13 @@ get_file_size(string filename, scratch_memory scratch)
 }
 
 void
-read_file(string filename, u64 len, u8 *buffer, scratch_memory scratch)
+read_file(string filename, u64 len, u8 *buffer, mem_arena scratch)
 {
     read_file_from(filename, 0, len, buffer, scratch);
 }
 
 void
-read_file_from(string filename, u64 from, u64 len, u8 *buffer, scratch_memory scratch)
+read_file_from(string filename, u64 from, u64 len, u8 *buffer, mem_arena scratch)
 {
     s32 file = open(to_c_string(filename, &scratch), O_RDONLY);
 
@@ -42,7 +42,7 @@ read_file_from(string filename, u64 from, u64 len, u8 *buffer, scratch_memory sc
 }
 
 void
-write_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
+write_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
 {
     string dirname = string_split_to(filename, string_find_last(filename, '/'));
     const char *dir = to_c_string(dirname, &scratch);
@@ -61,7 +61,7 @@ write_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
 
 //TODO: massive code duplication
 void
-append_file(string filename, u64 file_size, u8 *buffer, scratch_memory scratch)
+append_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
 {
     string dirname = string_split_to(filename, string_find_last(filename, '/'));
     const char *dir = to_c_string(dirname, &scratch);
@@ -104,7 +104,7 @@ seconds_since_epoch()
 }
 
 string
-get_data_directory(scratch_memory *scratch)
+get_data_directory(mem_arena *scratch)
 {
     string dir = create_string(getenv("XDG_DATA_HOME"));
     // TODO: determinine application name dynamically somehow

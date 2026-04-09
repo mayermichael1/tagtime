@@ -4,22 +4,22 @@
 #include "general.h"
 #include "string.h"
 
-typedef struct _scratch_memory scratch_memory;
+typedef struct _mem_arena mem_arena;
 
 u64
-get_file_size(string filename, scratch_memory scratch);
+get_file_size(string filename, mem_arena scratch);
 
 void
-read_file(string filename, u64 len, u8 *buffer, scratch_memory scratch);
+read_file(string filename, u64 len, u8 *buffer, mem_arena scratch);
 
 void
-read_file_from(string filename, u64 from, u64 len, u8 *buffer, scratch_memory scratch);
+read_file_from(string filename, u64 from, u64 len, u8 *buffer, mem_arena scratch);
 
 void
-write_file(string filename, u64 buffer_size, u8 *buffer, scratch_memory scratch);
+write_file(string filename, u64 buffer_size, u8 *buffer, mem_arena scratch);
 
 void
-append_file(string filename, u64 buffer_size, u8 *buffer, scratch_memory scratch);
+append_file(string filename, u64 buffer_size, u8 *buffer, mem_arena scratch);
 
 umm
 allocate(umm size);
