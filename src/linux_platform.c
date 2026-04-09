@@ -60,7 +60,7 @@ write_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
     }
 }
 
-//TODO: massive code duplication
+//TODO: massive code duplication from write_file
 void
 append_file(string filename, u64 file_size, u8 *buffer, mem_arena scratch)
 {
