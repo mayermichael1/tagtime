@@ -16,7 +16,8 @@ get_file_size(string filename, mem_arena scratch)
     struct stat st;
     const char *cfile = to_c_string(filename, &scratch);
     u64 filesize = 0;
-    if(stat(cfile, &st)==0){
+    if(stat(cfile, &st)==0)
+    {
         filesize = st.st_size;
     }
     return(filesize);
