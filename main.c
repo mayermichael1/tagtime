@@ -84,6 +84,39 @@ typedef struct
 }
 time_data;
 
+typedef enum
+{
+    CMD_NONE,
+    CMD_NEWTAG,
+    CMD_NEWTIME,
+    CMD_LIST,
+    CMD_SUM,
+}
+command;
+
+command
+argument_to_command(string argument)
+{
+    command c = 0; 
+    if(string_compare(argument, create_string("list")) == 0)
+    {
+        c = CMD_LIST;
+    }
+    else if(string_compare(argument, create_string("sum")) == 0)
+    {
+        c = CMD_SUM;
+    }
+    else if(string_compare(argument, create_string("newtag")) == 0)
+    {
+        c = CMD_NEWTAG;
+    }
+    else
+    {
+        c = CMD_NEWTIME;
+    }
+    return(c);
+}
+
 /**
  * read data from data_file
  *
@@ -594,132 +627,89 @@ main(u32 argc, u8** argv)
 
     if(args.count > 0) 
     {
-        string command = args.data[0];
+        command cmd = argument_to_command(args.data[0]);
 
         string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
         time_data data = data_from_file(file, temp_mem);
 
-        if(string_compare(command, create_string("newtag")) == 0)
-        {
-            // TODO: check if tag already exists
-            if(args.count > 1)
-            {
-                string tag = args.data[1];
-                ASSERT(tag.size < MAX_NEW_TAG_LENGTH);
-                insert_tag(&data, tag);
-            }
-        }
-        else if(string_compare(command, create_string("list")) == 0)
-        {
-            cli_arguments tag_args = {.count = args.count-1};
-            tag_args.data = &args.data[1];
+        cli_arguments tag_args = {.count = args.count-1};
+        tag_args.data = &args.data[1];
+        tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
 
-            if(tag_args.count == 0) //List all available tags
-            {
-                printf("List of available tags: \n");
-                for(u32 i=0; i<data.header.tag_count; ++i)
+        switch(cmd)
+        {
+            case CMD_NEWTAG:
+                if(args.count > 1)
                 {
-                    printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
+                    string tag = args.data[1];
+                    ASSERT(tag.size < MAX_NEW_TAG_LENGTH);
+                    insert_tag(&data, tag);
                 }
-            }
-            else // list all time entries connected to tags
-            {
-                tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
-                if(contains_uncreated_tags(tags))
+            break;
+            case CMD_LIST:
+            case CMD_SUM:
+                if(tag_args.count == 0) //List all available tags
                 {
-                    printf("Not all provided tags exist \n");
-                }
-                else
-                {
-                    printf("Linekd entry ids:\n");
-                    umm before = temp_mem.current; //TODO: for assertation may be removed
-                    u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
-                    for(u32 i=0; i<linked_entries.count; ++i)
+                    printf("List of available tags: \n");
+                    for(u32 i=0; i<data.header.tag_count; ++i)
                     {
-                        u64 entry_id = linked_entries.data[i];
-                        time_entry entry = get_entry_by_id(data, entry_id);
-                        printf("%d;%lu;%lu\n",entry_id, entry.timestamp, entry.minutes);
+                        printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
                     }
-                    ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
                 }
-            }
-        }
-        else if(string_compare(command, create_string("sum")) == 0)
-        {
-            //NOTE: this is essentially the same as list 
-            cli_arguments tag_args = {.count = args.count-1};
-            tag_args.data = &args.data[1];
-
-            if(tag_args.count == 0) //List all available tags
-            {
-                printf("List of available tags: \n");
-                for(u32 i=0; i<data.header.tag_count; ++i)
+                else // list all time entries connected to tags
                 {
-                    printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
-                }
-            }
-            else // list all time entries connected to tags
-            {
-                tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
-                if(contains_uncreated_tags(tags))
-                {
-                    printf("Not all provided tags exist \n");
-                }
-                else
-                {
-                    u64 sum_duration = 0;
-                    u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
-                    for(u32 i=0; i<linked_entries.count; ++i)
+                    if(contains_uncreated_tags(tags))
                     {
-                        u64 entry_id = linked_entries.data[i];
-                        time_entry entry = get_entry_by_id(data, entry_id);
-                        sum_duration += entry.minutes;
+                        printf("Not all provided tags exist \n");
                     }
-                    timestamp t = minute_to_time(sum_duration);
-                    printf("Sums to %lu minutes total which is %lud %luh %lum\n", t.sum_minutes, t.days, t.hours, t.minutes);
+                    else
+                    {
+                        umm before = temp_mem.current; //TODO: for assertation may be removed
+                        u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
+
+                        u64 sum_minutes = 0;
+                        for(u32 i=0; i<linked_entries.count; ++i)
+                        {
+                            u64 entry_id = linked_entries.data[i];
+                            time_entry entry = get_entry_by_id(data, entry_id);
+                            sum_minutes += entry.minutes;
+                            if(cmd == CMD_LIST)
+                            {
+                                printf("%d;%lu;%lu\n",entry_id, entry.timestamp, entry.minutes);
+                            }
+                        }
+                        if(cmd == CMD_SUM)
+                        {
+                            timestamp time = minute_to_time(sum_minutes);
+                            printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
+                        }
+                        ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
+                    }
                 }
-            }
+            break;
+            case CMD_NEWTIME:
+                string time_string = args.data[0];
 
-        }
-        else if(string_compare(command, create_string("delete")) == 0)
-        {
-            printf("delete\n");
-        }
-        else if(string_compare(command, create_string("addtag")) == 0)
-        {
-            printf("addtag\n");
-        }
-        else if(string_compare(command, create_string("deltag")) == 0)
-        {
-            printf("deltag\n");
-        }
-        else
-        {
-            string time_string = args.data[0];
-            cli_arguments tag_args = {.count = args.count-1};
-            tag_args.data = &args.data[1];
-
-            tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
-
-            if(tags.count != 0)
-            {
-                if(!contains_uncreated_tags(tags))
+                if(tags.count != 0)
                 {
-                    u64 duration = string_to_minutes(time_string);
-                    u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                    link_entry_to_tags(&data, entry_id, tags);
+                    if(!contains_uncreated_tags(tags))
+                    {
+                        u64 duration = string_to_minutes(time_string);
+                        u64 entry_id = insert_time_entry(&data, create_entry(duration));
+                        link_entry_to_tags(&data, entry_id, tags);
+                    }
+                    else
+                    {
+                        printf("Not all provided tags exist in the system \n");
+                    }
                 }
                 else
                 {
-                    printf("Not all provided tags exist in the system \n");
+                    printf("Time needs to have at least one tag \n");
                 }
-            }
-            else
-            {
-                printf("Time needs to have at least one tag \n");
-            }
-
+            break;
         }
+
         data_to_file(file, data, temp_mem);
     }
 
