@@ -625,12 +625,29 @@ main(u32 argc, u8** argv)
         args.data[i] = create_string(argv[i+1]);
     }
 
+    string file;
+
+    // check for alternative filename
+    if(args.count > 1)
+    {
+        if(string_compare(args.data[0], create_string("-f")) == 0)
+        {
+            file = args.data[1];
+            args.count = args.count - 2;
+            args.data = &args.data[2];
+        }
+        else
+        {
+            file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
+        }
+    }
+
+
     if(args.count > 0) 
     {
-        command cmd = argument_to_command(args.data[0]);
-
-        string file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
         time_data data = data_from_file(file, temp_mem);
+
+        command cmd = argument_to_command(args.data[0]);
 
         cli_arguments tag_args = {.count = args.count-1};
         tag_args.data = &args.data[1];
@@ -653,7 +670,8 @@ main(u32 argc, u8** argv)
                     printf("List of available tags: \n");
                     for(u32 i=0; i<data.header.tag_count; ++i)
                     {
-                        printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
+                        scratch_memory temp = temp_mem;
+                        printf(" - %s\n", to_c_string(data.data.tags[i], &temp));
                     }
                 }
                 else // list all time entries connected to tags
