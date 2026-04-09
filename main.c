@@ -12,6 +12,16 @@
 #define MAX_NEW_TAG_LENGTH  60
 #define MAX_TAG_LINKS       10
 
+typedef struct
+{
+    u64 days;
+    u64 hours;
+    u64 minutes;
+
+    u64 sum_minutes;
+}
+timestamp;
+
 typedef struct 
 {
     u64 timestamp;
@@ -525,6 +535,26 @@ get_entry_by_id(time_data data, u64 entry_id)
     return(entry);
 }
 
+/**
+ * take minutes and part them to days, hours and minutes
+ */
+timestamp
+minute_to_time(u64 minutes)
+{
+    timestamp t;
+    u64 rest = minutes;
+
+    t.days = rest / (60 * 24);
+    rest = rest % (60 * 24);
+
+    t.hours = rest / 60;
+
+    t.minutes = rest % 60;
+
+    t.sum_minutes = minutes;
+    return(t);
+}
+
 s32 
 main(u32 argc, u8** argv)
 {
@@ -616,7 +646,40 @@ main(u32 argc, u8** argv)
         }
         else if(string_compare(command, create_string("sum")) == 0)
         {
-            printf("sum\n");
+            //NOTE: this is essentially the same as list 
+            cli_arguments tag_args = {.count = args.count-1};
+            tag_args.data = &args.data[1];
+
+            if(tag_args.count == 0) //List all available tags
+            {
+                printf("List of available tags: \n");
+                for(u32 i=0; i<data.header.tag_count; ++i)
+                {
+                    printf(" - %s\n", to_c_string(data.data.tags[i], &temp_mem));
+                }
+            }
+            else // list all time entries connected to tags
+            {
+                tag_array tags = tags_to_array(&data, tag_args, &temp_mem);
+                if(contains_uncreated_tags(tags))
+                {
+                    printf("Not all provided tags exist \n");
+                }
+                else
+                {
+                    u64 sum_duration = 0;
+                    u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp_mem);
+                    for(u32 i=0; i<linked_entries.count; ++i)
+                    {
+                        u64 entry_id = linked_entries.data[i];
+                        time_entry entry = get_entry_by_id(data, entry_id);
+                        sum_duration += entry.minutes;
+                    }
+                    timestamp t = minute_to_time(sum_duration);
+                    printf("Sums to %lu minutes total which is %lud %luh %lum\n", t.sum_minutes, t.days, t.hours, t.minutes);
+                }
+            }
+
         }
         else if(string_compare(command, create_string("delete")) == 0)
         {
