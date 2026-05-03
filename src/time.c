@@ -304,7 +304,7 @@ string_to_minutes(string str)
         u32 hours = string_to_u64(hour_string); 
         u32 decimal = string_to_u64(minute_string);
         // calculate minutes from decimal places
-        minutes = 60 * decimal / pow_u64(10, (minute_string.size + 1));
+        minutes = 60 * decimal / pow_u64(10, minute_string.size);
         minutes += hours * 60;
     }
     else if(colon_index != -1)
