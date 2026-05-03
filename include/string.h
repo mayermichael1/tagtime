@@ -106,7 +106,7 @@ string_split(string str, u32 from, u32 to)
 string 
 string_split_from(string str, u32 from)
 {
-    return(string_split(str, from, str.size));
+    return(string_split(str, from, str.size-1));
 }
 
 string
