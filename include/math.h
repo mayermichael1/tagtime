@@ -48,7 +48,7 @@ pow_u64(u64 value, u32 exponent)
     {
         pow *= value;
     }
-    return(value);
+    return(pow);
 }
 
 /// BIT OPERATIONS
