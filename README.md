@@ -3,6 +3,12 @@
 This is a simple terminal utility to track durations of tasks. 
 Tasks can be tagged with various tags so they can be queried by them later.
 
+## TODOs
+
+- [ ] further related tags when querying entries
+- [ ] sort tags by last used, etc...
+- [ ] redesign CLI interface 
+
 ## Features
 
 - time tracking entry can be tagged with 1 to n tags
