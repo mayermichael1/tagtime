@@ -45,6 +45,65 @@ argument_to_command(string argument)
     return(c);
 }
 
+typedef struct
+{
+    u16 year;
+    u8 month;
+    u8 day;
+
+    u8 hour;
+    u8 minute;
+    u8 second;
+
+} 
+datetime;
+
+//TODO: maybe rename structure to timestamp again if current structure not to important
+datetime
+seconds_to_timestamp(u64 seconds_since_epoch)
+{
+    u64 sec_in_day = 24 * 60 * 60;
+
+    u64 epoch_days = seconds_since_epoch / sec_in_day;
+    u64 seconds_current_day = seconds_since_epoch - ( epoch_days * sec_in_day);
+
+    datetime stamp = {};
+    
+    // time of the day
+    stamp.second = seconds_current_day % 60;
+    u64 minutes_current_day = seconds_current_day / 60;
+    stamp.minute = minutes_current_day % 60;
+    stamp.hour = minutes_current_day / 60;
+
+    // year month day
+    //
+    stamp.year = epoch_days / 365; // NOTE: this should work until leap days result in an addiontal year
+    b8 leap_year = (stamp.year % 4 == 0) && (stamp.year % 100 != 0 || stamp.year % 400 == 0);
+    u32 days_in_year = 365;
+    if(leap_year)
+    {
+        days_in_year += 1;
+    }
+    u32 days_current_year = epoch_days % days_in_year;
+    //TODO: how to determine month and day?
+
+    stamp.year+=1970;
+    stamp.day+=1;
+    stamp.month+=1;
+
+    return(stamp);
+}
+
+s32
+main(u32 argc, u8 ** argv)
+{
+    datetime stamp = seconds_to_timestamp(seconds_since_epoch());
+    printf("%d.%d.%d %d:%d:%d UTC\n", stamp.year, stamp.month, stamp.day, stamp.hour, stamp.minute, stamp.second);
+
+    return(0);
+}
+
+/*
 s32 
 main(u32 argc, u8** argv)
 {
@@ -188,3 +247,4 @@ main(u32 argc, u8** argv)
 
     return(0);
 }
+*/
