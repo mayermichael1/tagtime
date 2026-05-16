@@ -80,17 +80,39 @@ seconds_to_timestamp(u64 seconds_since_epoch)
     stamp.year = epoch_days / 365; // NOTE: this should work until leap days result in an addiontal year
     b8 leap_year = (stamp.year % 4 == 0) && (stamp.year % 100 != 0 || stamp.year % 400 == 0);
     u32 days_in_year = 365;
-    if(leap_year)
-    {
-        days_in_year += 1;
-    }
     u32 days_current_year = epoch_days % days_in_year;
+
+    u32 leap_days_to_1970 = (1970 / 4) - ((1970 / 100) - (1970 / 400));
+    stamp.year+=1970;
+    u32 leap_days_to_year = (stamp.year / 4) - ((stamp.year / 100) - (stamp.year / 400));
+    u32 leap_days = leap_days_to_year - leap_days_to_1970;
+    days_current_year -= leap_days;
     //TODO: how to determine month and day?
 
-    stamp.year+=1970;
-    stamp.day+=1;
-    stamp.month+=1;
+    days_current_year+=1;
 
+    u32 MONTH_BORDER[12];
+    MONTH_BORDER[0] = 31; // JAN
+    MONTH_BORDER[1] = MONTH_BORDER[0] + 28 + ((leap_year) ? 1 : 0); // FEB
+    MONTH_BORDER[2] = MONTH_BORDER[1] + 31; // MAR
+    MONTH_BORDER[3] = MONTH_BORDER[2] + 30; // APR
+    MONTH_BORDER[4] = MONTH_BORDER[3] + 31; // MAY
+    MONTH_BORDER[5] = MONTH_BORDER[4] + 30; // JUN
+    MONTH_BORDER[6] = MONTH_BORDER[5] + 31; // JUL
+    MONTH_BORDER[7] = MONTH_BORDER[6] + 31; // AUG
+    MONTH_BORDER[8] = MONTH_BORDER[7] + 30; // SEP
+    MONTH_BORDER[9] = MONTH_BORDER[8] + 31; // OCT
+    MONTH_BORDER[10] = MONTH_BORDER[9] + 30; // NOV
+    MONTH_BORDER[11] = MONTH_BORDER[10] + 31; // DEC
+
+    for(u8 month = 12; stamp.day == 0 && month > 0; --month)
+    {
+        if(days_current_year > MONTH_BORDER[month-1])
+        {
+            stamp.month = month+1;
+            stamp.day = days_current_year - MONTH_BORDER[month-1] + 1;
+        }
+    }
     return(stamp);
 }
 
