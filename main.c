@@ -58,14 +58,28 @@ typedef struct
 } 
 datetime;
 
+b8
+is_leap_year(u16 year)
+{
+    return(year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+u16
+number_of_leap_years(u16 year)
+{
+    return((year / 4) - ((year / 100) - (year/ 400)));
+}
+
 //TODO: maybe rename structure to timestamp again if current structure not to important
 datetime
 seconds_to_timestamp(u64 seconds_since_epoch)
 {
-    u64 sec_in_day = 24 * 60 * 60;
+    u64 DAYSECONDS = 24 * 60 * 60;
+    u32 YEARDAYS = 365;
+    u16 EPOCHYEAR = 1970; 
 
-    u64 epoch_days = seconds_since_epoch / sec_in_day;
-    u64 seconds_current_day = seconds_since_epoch - ( epoch_days * sec_in_day);
+    u64 days_since_epoch = seconds_since_epoch / DAYSECONDS;
+    u64 seconds_current_day = seconds_since_epoch - ( days_since_epoch * DAYSECONDS);
 
     datetime stamp = {};
     
@@ -76,43 +90,39 @@ seconds_to_timestamp(u64 seconds_since_epoch)
     stamp.hour = minutes_current_day / 60;
 
     // year month day
-    //
-    stamp.year = epoch_days / 365; // NOTE: this should work until leap days result in an addiontal year
-    b8 leap_year = (stamp.year % 4 == 0) && (stamp.year % 100 != 0 || stamp.year % 400 == 0);
-    u32 days_in_year = 365;
-    u32 days_current_year = epoch_days % days_in_year;
+    stamp.year = EPOCHYEAR + days_since_epoch / YEARDAYS; // NOTE: this should work until leap days result in an addiontal year
 
-    u32 leap_days_to_1970 = (1970 / 4) - ((1970 / 100) - (1970 / 400));
-    stamp.year+=1970;
-    u32 leap_days_to_year = (stamp.year / 4) - ((stamp.year / 100) - (stamp.year / 400));
-    u32 leap_days = leap_days_to_year - leap_days_to_1970;
+    u32 days_current_year = days_since_epoch % YEARDAYS;
+    u32 leap_days = number_of_leap_years(stamp.year) - number_of_leap_years(EPOCHYEAR);
     days_current_year -= leap_days;
-    //TODO: how to determine month and day?
 
-    days_current_year+=1;
+    // determine month and day
 
-    u32 MONTH_BORDER[12];
-    MONTH_BORDER[0] = 31; // JAN
-    MONTH_BORDER[1] = MONTH_BORDER[0] + 28 + ((leap_year) ? 1 : 0); // FEB
-    MONTH_BORDER[2] = MONTH_BORDER[1] + 31; // MAR
-    MONTH_BORDER[3] = MONTH_BORDER[2] + 30; // APR
-    MONTH_BORDER[4] = MONTH_BORDER[3] + 31; // MAY
-    MONTH_BORDER[5] = MONTH_BORDER[4] + 30; // JUN
-    MONTH_BORDER[6] = MONTH_BORDER[5] + 31; // JUL
-    MONTH_BORDER[7] = MONTH_BORDER[6] + 31; // AUG
-    MONTH_BORDER[8] = MONTH_BORDER[7] + 30; // SEP
-    MONTH_BORDER[9] = MONTH_BORDER[8] + 31; // OCT
-    MONTH_BORDER[10] = MONTH_BORDER[9] + 30; // NOV
-    MONTH_BORDER[11] = MONTH_BORDER[10] + 31; // DEC
+    //MONTH_DAY_BORDER is the day at which the current month is over
+    //MONTH_DAY_BORDER[0] is JANUARY after 31 days january is over and so on
+    u32 MONTH_DAY_BORDER[12];
+    MONTH_DAY_BORDER[0] = 31; // JAN 
+    MONTH_DAY_BORDER[1] = MONTH_DAY_BORDER[0] + 28 + ((is_leap_year(stamp.year)) ? 1 : 0); // FEB
+    MONTH_DAY_BORDER[2] = MONTH_DAY_BORDER[1] + 31; // MAR
+    MONTH_DAY_BORDER[3] = MONTH_DAY_BORDER[2] + 30; // APR
+    MONTH_DAY_BORDER[4] = MONTH_DAY_BORDER[3] + 31; // MAY
+    MONTH_DAY_BORDER[5] = MONTH_DAY_BORDER[4] + 30; // JUN
+    MONTH_DAY_BORDER[6] = MONTH_DAY_BORDER[5] + 31; // JUL
+    MONTH_DAY_BORDER[7] = MONTH_DAY_BORDER[6] + 31; // AUG
+    MONTH_DAY_BORDER[8] = MONTH_DAY_BORDER[7] + 30; // SEP
+    MONTH_DAY_BORDER[9] = MONTH_DAY_BORDER[8] + 31; // OCT
+    MONTH_DAY_BORDER[10] = MONTH_DAY_BORDER[9] + 30; // NOV
+    MONTH_DAY_BORDER[11] = MONTH_DAY_BORDER[10] + 31; // DEC
 
     for(u8 month = 12; stamp.day == 0 && month > 0; --month)
     {
-        if(days_current_year > MONTH_BORDER[month-1])
+        if(days_current_year > MONTH_DAY_BORDER[month-1])
         {
-            stamp.month = month+1;
-            stamp.day = days_current_year - MONTH_BORDER[month-1] + 1;
+            stamp.month = month+1; 
+            stamp.day = days_current_year - MONTH_DAY_BORDER[month-1] + 1;
         }
     }
+
     return(stamp);
 }
 
