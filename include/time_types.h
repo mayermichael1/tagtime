@@ -6,13 +6,26 @@
 
 typedef struct
 {
+    u16 year;
+    u8 month;
+    u8 day;
+
+    u8 hour;
+    u8 minute;
+    u8 second;
+
+} 
+datetime;
+
+typedef struct
+{
     u64 days;
     u64 hours;
     u64 minutes;
 
     u64 sum_minutes;
 }
-timestamp;
+duration_minutes;
 
 typedef struct 
 {

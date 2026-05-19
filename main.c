@@ -45,101 +45,9 @@ argument_to_command(string argument)
     return(c);
 }
 
-typedef struct
-{
-    u16 year;
-    u8 month;
-    u8 day;
-
-    u8 hour;
-    u8 minute;
-    u8 second;
-
-} 
-datetime;
-
-b8
-is_leap_year(u16 year)
-{
-    return(year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
-}
-
-u16
-number_of_leap_years(u16 year)
-{
-    return((year / 4) - ((year / 100) - (year/ 400)));
-}
-
-//TODO: maybe rename structure to timestamp again if current structure not to important
-datetime
-seconds_to_timestamp(u64 seconds_since_epoch)
-{
-    u64 DAYSECONDS = 24 * 60 * 60;
-    u32 YEARDAYS = 365;
-    u16 EPOCHYEAR = 1970; 
-
-    u64 days_since_epoch = seconds_since_epoch / DAYSECONDS;
-    u64 seconds_current_day = seconds_since_epoch - ( days_since_epoch * DAYSECONDS);
-
-    datetime stamp = {};
-    
-    // time of the day
-    stamp.second = seconds_current_day % 60;
-    u64 minutes_current_day = seconds_current_day / 60;
-    stamp.minute = minutes_current_day % 60;
-    stamp.hour = minutes_current_day / 60;
-
-    // year month day
-    stamp.year = EPOCHYEAR + days_since_epoch / YEARDAYS; // NOTE: this should work until leap days result in an addiontal year
-
-    u32 days_current_year = days_since_epoch % YEARDAYS;
-    u32 leap_days = number_of_leap_years(stamp.year) - number_of_leap_years(EPOCHYEAR);
-    days_current_year -= leap_days;
-
-    // determine month and day
-
-    //MONTH_DAY_BORDER is the day at which the current month is over
-    //MONTH_DAY_BORDER[0] is JANUARY after 31 days january is over and so on
-    u32 MONTH_DAY_BORDER[12];
-    MONTH_DAY_BORDER[0] = 31; // JAN 
-    MONTH_DAY_BORDER[1] = MONTH_DAY_BORDER[0] + 28 + ((is_leap_year(stamp.year)) ? 1 : 0); // FEB
-    MONTH_DAY_BORDER[2] = MONTH_DAY_BORDER[1] + 31; // MAR
-    MONTH_DAY_BORDER[3] = MONTH_DAY_BORDER[2] + 30; // APR
-    MONTH_DAY_BORDER[4] = MONTH_DAY_BORDER[3] + 31; // MAY
-    MONTH_DAY_BORDER[5] = MONTH_DAY_BORDER[4] + 30; // JUN
-    MONTH_DAY_BORDER[6] = MONTH_DAY_BORDER[5] + 31; // JUL
-    MONTH_DAY_BORDER[7] = MONTH_DAY_BORDER[6] + 31; // AUG
-    MONTH_DAY_BORDER[8] = MONTH_DAY_BORDER[7] + 30; // SEP
-    MONTH_DAY_BORDER[9] = MONTH_DAY_BORDER[8] + 31; // OCT
-    MONTH_DAY_BORDER[10] = MONTH_DAY_BORDER[9] + 30; // NOV
-    MONTH_DAY_BORDER[11] = MONTH_DAY_BORDER[10] + 31; // DEC
-
-    for(u8 month = 12; stamp.day == 0 && month > 0; --month)
-    {
-        if(days_current_year > MONTH_DAY_BORDER[month-1])
-        {
-            stamp.month = month+1; 
-            stamp.day = days_current_year - MONTH_DAY_BORDER[month-1] + 1;
-        }
-    }
-
-    return(stamp);
-}
-
-s32
-main(u32 argc, u8 ** argv)
-{
-    datetime stamp = seconds_to_timestamp(seconds_since_epoch());
-    printf("%d.%d.%d %d:%d:%d UTC\n", stamp.year, stamp.month, stamp.day, stamp.hour, stamp.minute, stamp.second);
-
-    return(0);
-}
-
-/*
 s32 
 main(u32 argc, u8** argv)
 {
-
     // cli strutcture
     // tagtime <time> <tag>* -- record an entry
     // tagtime newtag <name> -- create new tag with name <name>
@@ -239,12 +147,13 @@ main(u32 argc, u8** argv)
                             sum_minutes += entry.minutes;
                             if(cmd == CMD_LIST)
                             {
-                                printf("%d;%lu;%lu\n",entry_id, entry.timestamp, entry.minutes);
+                                datetime dt = seconds_to_timestamp(entry.timestamp);
+                                printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                             }
                         }
                         if(cmd == CMD_SUM)
                         {
-                            timestamp time = minute_to_time(sum_minutes);
+                            duration_minutes time = minute_to_time(sum_minutes);
                             printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                         }
                         ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
@@ -279,4 +188,3 @@ main(u32 argc, u8** argv)
 
     return(0);
 }
-*/
