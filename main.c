@@ -45,6 +45,11 @@ argument_to_command(string argument)
     return(c);
 }
 
+//TODO: new argument handling structure
+//      handle these arguments like getopt 
+//      but write the code manually so it will eventually work on windows as well
+//      implement the resulting data structure into a map and provide it as part 
+//      of the platform layer as well
 s32 
 main(u32 argc, u8** argv)
 {
