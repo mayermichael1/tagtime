@@ -347,10 +347,10 @@ get_entry_by_id(time_data data, u64 entry_id)
 /**
  * take minutes and part them to days, hours and minutes
  */
-timestamp
+duration_minutes
 minute_to_time(u64 minutes)
 {
-    timestamp t;
+    duration_minutes t;
     u64 rest = minutes;
 
     t.days = rest / (60 * 24);
@@ -380,4 +380,71 @@ tags_to_array(time_data *data, string_array tags, mem_arena *memory)
         arr.ids[i] = get_tag_id(*data, tags.data[i]);
     }
     return(arr);
+}
+
+b8
+is_leap_year(u16 year)
+{
+    return(year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+u16
+number_of_leap_years(u16 year)
+{
+    return((year / 4) - ((year / 100) - (year/ 400)));
+}
+
+datetime
+seconds_to_timestamp(u64 seconds_since_epoch)
+{
+    u64 DAYSECONDS = 24 * 60 * 60;
+    u32 YEARDAYS = 365;
+    u16 EPOCHYEAR = 1970; 
+
+    u64 days_since_epoch = seconds_since_epoch / DAYSECONDS;
+    u64 seconds_current_day = seconds_since_epoch - ( days_since_epoch * DAYSECONDS);
+
+    datetime stamp = {};
+    
+    // time of the day
+    stamp.second = seconds_current_day % 60;
+    u64 minutes_current_day = seconds_current_day / 60;
+    stamp.minute = minutes_current_day % 60;
+    stamp.hour = minutes_current_day / 60;
+
+    // year month day
+    stamp.year = EPOCHYEAR + days_since_epoch / YEARDAYS; // NOTE: this should work until leap days result in an addiontal year
+
+    u32 days_current_year = days_since_epoch % YEARDAYS;
+    u32 leap_days = number_of_leap_years(stamp.year) - number_of_leap_years(EPOCHYEAR);
+    days_current_year -= leap_days;
+
+    // determine month and day
+
+    //MONTH_DAY_BORDER is the day at which the current month is over
+    //MONTH_DAY_BORDER[0] is JANUARY after 31 days january is over and so on
+    u32 MONTH_DAY_BORDER[12];
+    MONTH_DAY_BORDER[0] = 31; // JAN 
+    MONTH_DAY_BORDER[1] = MONTH_DAY_BORDER[0] + 28 + ((is_leap_year(stamp.year)) ? 1 : 0); // FEB
+    MONTH_DAY_BORDER[2] = MONTH_DAY_BORDER[1] + 31; // MAR
+    MONTH_DAY_BORDER[3] = MONTH_DAY_BORDER[2] + 30; // APR
+    MONTH_DAY_BORDER[4] = MONTH_DAY_BORDER[3] + 31; // MAY
+    MONTH_DAY_BORDER[5] = MONTH_DAY_BORDER[4] + 30; // JUN
+    MONTH_DAY_BORDER[6] = MONTH_DAY_BORDER[5] + 31; // JUL
+    MONTH_DAY_BORDER[7] = MONTH_DAY_BORDER[6] + 31; // AUG
+    MONTH_DAY_BORDER[8] = MONTH_DAY_BORDER[7] + 30; // SEP
+    MONTH_DAY_BORDER[9] = MONTH_DAY_BORDER[8] + 31; // OCT
+    MONTH_DAY_BORDER[10] = MONTH_DAY_BORDER[9] + 30; // NOV
+    MONTH_DAY_BORDER[11] = MONTH_DAY_BORDER[10] + 31; // DEC
+
+    for(u8 month = 12; stamp.day == 0 && month > 0; --month)
+    {
+        if(days_current_year > MONTH_DAY_BORDER[month-1])
+        {
+            stamp.month = month+1; 
+            stamp.day = days_current_year - MONTH_DAY_BORDER[month-1] + 1;
+        }
+    }
+
+    return(stamp);
 }

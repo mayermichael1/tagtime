@@ -48,7 +48,6 @@ argument_to_command(string argument)
 s32 
 main(u32 argc, u8** argv)
 {
-
     // cli strutcture
     // tagtime <time> <tag>* -- record an entry
     // tagtime newtag <name> -- create new tag with name <name>
@@ -148,12 +147,13 @@ main(u32 argc, u8** argv)
                             sum_minutes += entry.minutes;
                             if(cmd == CMD_LIST)
                             {
-                                printf("%d;%lu;%lu\n",entry_id, entry.timestamp, entry.minutes);
+                                datetime dt = seconds_to_timestamp(entry.timestamp);
+                                printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                             }
                         }
                         if(cmd == CMD_SUM)
                         {
-                            timestamp time = minute_to_time(sum_minutes);
+                            duration_minutes time = minute_to_time(sum_minutes);
                             printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                         }
                         ASSERT(temp_mem.current == (before + data.header.entry_count * sizeof(u64)));
