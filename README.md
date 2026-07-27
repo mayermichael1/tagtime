@@ -8,6 +8,8 @@ Tasks can be tagged with various tags so they can be queried by them later.
 - [ ] further related tags when querying entries
 - [ ] sort tags by last used, etc...
 - [ ] redesign CLI interface 
+- [ ] weekly / monthly reports etc
+- [ ] create new entries through an assistant (create uncreated tags, etc)
 
 ## Features
 
