@@ -55,11 +55,21 @@ argument_to_command(string argument)
 //
 
 #define CLI_ARGS_CAPACITY 32
+
+typedef enum
+{
+    CLI_ARGUMENT_FLAG = 0,
+    CLI_ARGUMENT_ONE,
+    CLI_ARGUMENT_ONE_TO_MANY
+}
+cli_argument_type;
+
 typedef struct
 {
     u8      option;
     u8**    argv_pointer;
     u32     count;
+    cli_argument_type type;
 }
 cli_argument;
 
@@ -67,19 +77,20 @@ typedef struct
 {
     string program_name;
     cli_argument args[CLI_ARGS_CAPACITY];
+    u32 errors;
 }
 cli_arguments;
 
 u8
-_cli_args_hash(cli_argument arg)
+_cli_args_hash(u8 option)
 {
-    return arg.option / 10;
+    return option / 10;
 }
 
 void
 _cli_args_insert(cli_arguments *args, cli_argument arg)
 {
-    u8 hash = 0;//_cli_args_hash(arg);
+    u8 hash = _cli_args_hash(arg.option);
     b8 vacant = true;
     for(u32 i = hash; vacant && i < CLI_ARGS_CAPACITY; i++)
     {
@@ -114,34 +125,97 @@ cli_parse(u32 argc, u8** argv, string options)
                 if(modifier == '.') // 1 or more arguments
                 {
                     ++i;
-                    ASSERT(i < argc);
-                    argument.argv_pointer = &argv[i];
-                    for(b8 next_option_found = false; !next_option_found && i < argc; ++i)
+                    argument.type = CLI_ARGUMENT_ONE_TO_MANY;
+
+                    if(i < argc)
                     {
-                        if(argv[i][0] == '-')
+                        argument.argv_pointer = &argv[i];
+
+                        for(b8 next_option_found = false; !next_option_found && i < argc; ++i)
                         {
-                            next_option_found = true;
+                            if(argv[i][0] == '-')
+                            {
+                                next_option_found = true;
+                            }
+                            else
+                            {
+                                argument.count++;
+                            }
                         }
-                        else
-                        {
-                            argument.count++;
-                        }
+                    }
+
+                    if(argument.count == 0)
+                    {
+                        cli_args.errors++;
                     }
                 }
                 else if(modifier == ':') // exactly one argument
                 {
                     ++i;
-                    ASSERT(i < argc);
-                    argument.count = 1;
-                    argument.argv_pointer = &argv[i];
-                }
+                    argument.type = CLI_ARGUMENT_ONE;
 
+                    if(i < argc)
+                    {
+                        argument.count = 1;
+                        argument.argv_pointer = &argv[i];
+                    }
+
+                    if(argument.count == 0)
+                    {
+                        cli_args.errors++;
+                    }
+                }
                 _cli_args_insert(&cli_args, argument);
             }
         }
     }
 
     return(cli_args);
+}
+
+s16
+_cli_arguments_find_position(cli_arguments arguments, u8 option)
+{
+    u8 hash = _cli_args_hash(option);
+    s16 index = -1;
+    for(u8 i = hash; index == -1 && i < CLI_ARGS_CAPACITY; ++i)
+    {
+        if(arguments.args[i].option == option)
+        {
+            index = i;
+        }
+    }
+    return(index);
+}
+
+b8
+cli_contains(cli_arguments arguments, u8 option)
+{
+    return(_cli_arguments_find_position(arguments, option) != -1);
+}
+
+u32
+cli_option_count(cli_arguments arguments, u8 option)
+{
+    s16 index = _cli_arguments_find_position(arguments, option);
+    u32 count = 0;
+    if(index != -1)
+    {
+        count = arguments.args[index].count;
+    }
+    return(count);
+}
+
+string
+cli_get_arg(cli_arguments arguments, u8 option, u32 index)
+{    
+    s16 i = _cli_arguments_find_position(arguments, option);
+    string arg = create_string("");
+    if(i != -1)
+    {
+        arg = create_string(arguments.args[i].argv_pointer[index]);
+    }
+    return(arg);
 }
 
 s32 
@@ -185,21 +259,29 @@ main(u32 argc, u8** argv)
     */
 
     cli_arguments args = cli_parse(argc, argv, create_string("ab:c."));
-    for(u32 i = 0; i < CLI_ARGS_CAPACITY; ++i)
+
+    if(cli_contains(args, 'a'))
     {
-        u8 count = args.args[i].count;
-        u8 option = args.args[i].option;
-        if(option)
+        printf("args contains a\n");
+    }
+
+    if(cli_contains(args, 'b'))
+    {
+        for(u32 i = 0; i < cli_option_count(args, 'b'); ++i)
         {
-            printf("%d: option %c with a count of %d being :\n", i, args.args[i].option, count);
-            for(u32 y = 0; y < count; ++y)
-            {
-                printf(" - %s\n", args.args[i].argv_pointer[y]);
-            }
+            printf("option b with argument %s\n", cli_get_arg(args, 'b', i).data); 
         }
     }
-    /*
 
+    if(cli_contains(args, 'c'))
+    {
+        for(u32 i = 0; i < cli_option_count(args, 'c'); ++i)
+        {
+            printf("option c with argument %s\n", cli_get_arg(args, 'b', i).data); 
+        }
+    }
+
+    /*
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
