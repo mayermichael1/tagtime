@@ -50,6 +50,100 @@ argument_to_command(string argument)
 //      but write the code manually so it will eventually work on windows as well
 //      implement the resulting data structure into a map and provide it as part 
 //      of the platform layer as well
+//
+//
+//
+
+#define CLI_ARGS_CAPACITY 32
+typedef struct
+{
+    u8      option;
+    u8**    argv_pointer;
+    u32     count;
+}
+cli_argument;
+
+typedef struct
+{
+    string program_name;
+    cli_argument args[CLI_ARGS_CAPACITY];
+}
+cli_arguments;
+
+u8
+_cli_args_hash(cli_argument arg)
+{
+    return arg.option / 10;
+}
+
+void
+_cli_args_insert(cli_arguments *args, cli_argument arg)
+{
+    u8 hash = 0;//_cli_args_hash(arg);
+    b8 vacant = true;
+    for(u32 i = hash; vacant && i < CLI_ARGS_CAPACITY; i++)
+    {
+        if(args->args[i].option == 0)
+        {
+            args->args[i] = arg;
+            vacant = false;
+        }
+    }
+    ASSERT(!vacant);
+}
+
+cli_arguments
+cli_parse(u32 argc, u8** argv, string options)
+{
+    cli_arguments cli_args = {};
+    cli_args.program_name = create_string(argv[0]);
+
+    for(u32 i = 1; i < argc; ++i)
+    {
+        string arg = create_string(argv[i]);
+        if(arg.data[0] == '-' && arg.data[1] != 0)
+        { 
+            u8 find_option = arg.data[1];
+            s64 pos = string_find_u8(options, find_option);
+            if(pos != -1)
+            {
+                cli_argument argument = {};
+                argument.option = find_option;
+                
+                u8 modifier = options.data[pos+1];
+                if(modifier == '.') // 1 or more arguments
+                {
+                    ++i;
+                    ASSERT(i < argc);
+                    argument.argv_pointer = &argv[i];
+                    for(b8 next_option_found = false; !next_option_found && i < argc; ++i)
+                    {
+                        if(argv[i][0] == '-')
+                        {
+                            next_option_found = true;
+                        }
+                        else
+                        {
+                            argument.count++;
+                        }
+                    }
+                }
+                else if(modifier == ':') // exactly one argument
+                {
+                    ++i;
+                    ASSERT(i < argc);
+                    argument.count = 1;
+                    argument.argv_pointer = &argv[i];
+                }
+
+                _cli_args_insert(&cli_args, argument);
+            }
+        }
+    }
+
+    return(cli_args);
+}
+
 s32 
 main(u32 argc, u8** argv)
 {
@@ -74,6 +168,37 @@ main(u32 argc, u8** argv)
     // - create new tag
     // - query tag(s)
     // - edit an existing entry
+    //
+
+    //TODO: usage code example for new argument handling:
+    /*
+    cli_arguments args = cli_argument_parse(argc, argv, create_string("t.lsan"));
+
+    if(cli_contains(args, 's')) // sum 
+    if(cli_contains(args, 't')) // at least 1 argument exists for t
+    {
+        for(u32 i = 0; i < cli_option_count(args, 't'); ++i)
+        {
+            string arg = cli_get_arg(args,'t', i);
+        }
+    }
+    */
+
+    cli_arguments args = cli_parse(argc, argv, create_string("ab:c."));
+    for(u32 i = 0; i < CLI_ARGS_CAPACITY; ++i)
+    {
+        u8 count = args.args[i].count;
+        u8 option = args.args[i].option;
+        if(option)
+        {
+            printf("%d: option %c with a count of %d being :\n", i, args.args[i].option, count);
+            for(u32 y = 0; y < count; ++y)
+            {
+                printf(" - %s\n", args.args[i].argv_pointer[y]);
+            }
+        }
+    }
+    /*
 
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
@@ -190,6 +315,7 @@ main(u32 argc, u8** argv)
 
         data_to_file(file, data, temp_mem);
     }
+    */
 
     return(0);
 }
