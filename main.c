@@ -103,6 +103,48 @@ _cli_args_insert(cli_arguments *args, cli_argument arg)
     ASSERT(!vacant);
 }
 
+s16
+_cli_arguments_find_position(cli_arguments arguments, u8 option)
+{
+    u8 hash = _cli_args_hash(option);
+    s16 index = -1;
+    for(u8 i = hash; index == -1 && i < CLI_ARGS_CAPACITY; ++i)
+    {
+        if(arguments.args[i].option == option)
+        {
+            index = i;
+        }
+    }
+    return(index);
+}
+
+/**
+ * parses through program arguments and creates a easily handable structure
+ *
+ * This function is loosely based on the getopt function defined in the posix 
+ * standard.
+ * the options string is used to determine which characters are which type of 
+ * option.
+ * all characters except (. and :) in the options string represent an option.
+ * - . is reserved to specify the option can have 1 to many arguments
+ * - : is reserved to specify the option has exactly 1 argument
+ *
+ * example: option string "ab:c."
+ * program invocation: program -a -b arg1 -c arg2 arg3 arg4
+ *
+ * NOTE: if an option expects an argument but is not provided one, an error 
+ * count is increased. 
+ * The argument itself contains a supposed type of the argument.
+ * With these mechanisms the error might be found 
+ *
+ * NOTE: this API does not allow option repeats. 
+ *
+ * @param   argc passed directly from main
+ * @param   argv passed directly from main
+ * @param   options option string as specified above
+ *
+ * @return arguments structure containing parsed arguments
+ */
 cli_arguments
 cli_parse(u32 argc, u8** argv, string options)
 {
@@ -173,27 +215,28 @@ cli_parse(u32 argc, u8** argv, string options)
     return(cli_args);
 }
 
-s16
-_cli_arguments_find_position(cli_arguments arguments, u8 option)
-{
-    u8 hash = _cli_args_hash(option);
-    s16 index = -1;
-    for(u8 i = hash; index == -1 && i < CLI_ARGS_CAPACITY; ++i)
-    {
-        if(arguments.args[i].option == option)
-        {
-            index = i;
-        }
-    }
-    return(index);
-}
-
+/**
+ *  does the arguments structure contain the provided option
+ *
+ *  @param  arguments cli_arguments structure created by cli_parse
+ *  @param  option to check if contained
+ *
+ *  @return true if options exists
+ */
 b8
 cli_contains(cli_arguments arguments, u8 option)
 {
     return(_cli_arguments_find_position(arguments, option) != -1);
 }
 
+/**
+ * retrieves the argument count for a specified option
+ *
+ *  @param  arguments cli_arguments structure created by cli_parse
+ *  @param  option to check
+ *
+ *  @return count of arguments
+ */
 u32
 cli_option_count(cli_arguments arguments, u8 option)
 {
@@ -206,6 +249,15 @@ cli_option_count(cli_arguments arguments, u8 option)
     return(count);
 }
 
+/**
+ *  retrieves the n-th argument of an option
+ *
+ *  @param  arguments cli_arguments structure created by cli_parse
+ *  @param  option to check
+ *  @param  index of the argument to retrieve
+ *
+ *  @return string containing the argument 
+ */
 string
 cli_get_arg(cli_arguments arguments, u8 option, u32 index)
 {    
@@ -214,8 +266,7 @@ cli_get_arg(cli_arguments arguments, u8 option, u32 index)
     if(i != -1)
     {
         arg = create_string(arguments.args[i].argv_pointer[index]);
-    }
-    return(arg);
+    } return(arg);
 }
 
 s32 
@@ -280,6 +331,8 @@ main(u32 argc, u8** argv)
             printf("option c with argument %s\n", cli_get_arg(args, 'b', i).data); 
         }
     }
+
+    printf("%d errors\n", args.errors);
 
     /*
     set_platform_arena(create_mem_arena(KB));
