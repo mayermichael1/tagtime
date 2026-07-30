@@ -10,7 +10,7 @@ typedef struct
 }
 u64_array;
 
-typedef struct
+typedef struct  _string_array
 {
     u32 count;
     string *data;

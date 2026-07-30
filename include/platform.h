@@ -5,6 +5,7 @@
 #include "string.h"
 
 typedef struct _mem_arena mem_arena;
+typedef struct _string_array string_array;
 
 ///==========================================================================///
 ///                             GENERAL                                      ///
@@ -266,14 +267,23 @@ cli_get_arg(cli_arguments arguments, u8 option, u32 index)
 {    
     s16 i = _cli_arguments_find_position(arguments, option);
     string arg = create_string("");
-    if(i != -1)
+    if(i != -1 && index < cli_option_count(arguments, option))
     {
         arg = create_string(arguments.args[i].argv_pointer[index]);
-    } return(arg);
+    } 
+    return(arg);
 }
 
-
-
-
+/**
+ *  returns a string array containing all arguments to a option
+ *
+ *  @param  arguments cli_arguments structure created by cli_parse
+ *  @param  option to check
+ *  @param  memory arena where array will be created in
+ *
+ *  @return string array containing all arguments
+ */
+string_array
+cli_get_args(cli_arguments arguments, u8 option, mem_arena *arena);
 
 #endif

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "include/memory.h"
 #include "include/string_memory.h"
 
 global_variable mem_arena platform_local_temp_mem;
@@ -129,4 +130,18 @@ get_data_directory()
         dir = string_append(dir, create_string("/tagtime/"), &platform_local_temp_mem);
     }
     return(dir);
+}
+
+string_array
+cli_get_args(cli_arguments arguments, u8 option, mem_arena *arena)
+{
+    string_array arr = {.count = cli_option_count(arguments, option)};
+    arr.data = ARENA_PUSH_ARRAY(arena, string, arr.count);
+
+    for(u32 i = 0; i < arr.count; ++i)
+    {
+        arr.data[i] = cli_get_arg(arguments, option, i);
+    }
+
+    return(arr);
 }

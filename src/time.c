@@ -367,6 +367,7 @@ minute_to_time(u64 minutes)
 /**
  * takes an array of cli_argumnts (essentially string array) and create a
  */
+//TODO: time_data does not need to be a pointer here
 tag_array
 tags_to_array(time_data *data, string_array tags, mem_arena *memory)
 {
