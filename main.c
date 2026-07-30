@@ -46,7 +46,7 @@ main(u32 argc, u8** argv)
     if(cli_contains(args, 'c'))
     {
         string time_string =  cli_get_arg(args, 'c', 0);
-        mem_arena temp = temp_mem; // TODO: create function to "create" block scoped arena
+        mem_arena temp = create_scoped_arena(temp_mem); // TODO: create function to "create" block scoped arena
         tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
         if(tags.count != 0)
         {
@@ -73,13 +73,13 @@ main(u32 argc, u8** argv)
             printf("List of available tags: \n");
             for(u32 i=0; i<data.header.tag_count; ++i)
             {
-                mem_arena temp = temp_mem;
+                mem_arena temp = create_scoped_arena(temp_mem);
                 printf(" - %s\n", to_c_string(data.data.tags[i], &temp));
             }
         }
         else if(cli_option_count(args, 't') != 0)
         {
-            mem_arena temp = temp_mem; // TODO: create function to "create" block scoped arena
+            mem_arena temp = create_scoped_arena(temp_mem); // TODO: create function to "create" block scoped arena
             tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
 
             //TODO: dynamically create tags if they do not exist -a should be pointless then

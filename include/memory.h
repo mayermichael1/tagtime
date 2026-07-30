@@ -60,6 +60,8 @@ create_mem_arena(umm size)
 /// @param  size            size to reserve
 ///
 /// @return returns the memory address of the reserved memory
+//TODO: maybe create a safe function that zeroes out memory when allocating
+//      currently memory is returned as is 
 umm
 push_mem_arena(mem_arena *scratch, umm size)
 {
@@ -84,6 +86,27 @@ destroy_mem_arena(mem_arena *scratch)
     scratch->start = 0;
     scratch->end = 0;
     scratch->current = 0;
+}
+
+/**
+ * creates a copy of a mem_arena
+ *
+ * as this copy is scope local the mem arena basically resets to the previous 
+ * state whenever the scope is exited.
+ *
+ * this function may seem useless but adds to readability.
+ * maybe create this as a DEFINE if this is ever as problem.
+ *
+ * !Data will stay in the memory but pointers are reset.
+ *
+ * @param   mem_arena to copy
+ *
+ * @return  exact copy of the struct
+ */
+mem_arena
+create_scoped_arena(mem_arena arena)
+{
+    return(arena);
 }
 
 
