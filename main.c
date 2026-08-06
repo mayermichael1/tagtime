@@ -55,7 +55,8 @@ main(u32 argc, u8** argv)
     // a ... add new tag(s)
     // f ... optional filename 
     // c ... timestamp for new time tracking followed by a time
-    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:h"));
+    // n ... for list and sum show all entries
+    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hn"));
 
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
@@ -117,7 +118,7 @@ main(u32 argc, u8** argv)
         }
         else if(cli_contains(args, 's') || cli_contains(args, 'l'))
         {
-            if(!cli_contains(args, 't'))
+            if(!cli_contains(args, 't') && !cli_contains(args, 'n'))
             {
                 printf("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
@@ -147,7 +148,7 @@ main(u32 argc, u8** argv)
                         u64 entry_id = linked_entries.data[i];
                         time_entry entry = get_entry_by_id(data, entry_id);
                         sum_minutes += entry.minutes;
-                        if(cli_contains(args, 't'))
+                        if(cli_contains(args, 'l'))
                         {
                             datetime dt = seconds_to_timestamp(entry.timestamp);
                             printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
@@ -159,6 +160,25 @@ main(u32 argc, u8** argv)
                         printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                     }
                     ASSERT(temp.current == (before + data.header.entry_count * sizeof(u64)));
+                }
+            }
+            else if(cli_contains(args, 'n'))
+            {
+                u64 sum_minutes = 0;
+                for(u32 i=1; i<=data.header.entry_count; ++i)
+                {
+                    time_entry entry = get_entry_by_id(data, i);
+                    sum_minutes += entry.minutes;
+                    if(cli_contains(args, 'l'))
+                    {
+                        datetime dt = seconds_to_timestamp(entry.timestamp);
+                        printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                    }
+                }
+                if(cli_contains(args, 's'))
+                {
+                    duration_minutes time = minute_to_time(sum_minutes);
+                    printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                 }
             }
         }
