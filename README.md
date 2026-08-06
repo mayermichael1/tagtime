@@ -5,11 +5,15 @@ Tasks can be tagged with various tags so they can be queried by them later.
 
 ## TODOs
 
+- [x] create new entries through an assistant (create uncreated tags, etc)
+- [ ] weekly / monthly reports etc
+- [ ] do not use typedef for structs
+- [ ] create printf replacement
+      idea: only print a string
+      create formatting for the string class so it can be used for other things
+      as well
 - [ ] further related tags when querying entries
 - [ ] sort tags by last used, etc...
-- [ ] weekly / monthly reports etc
-- [ ] create new entries through an assistant (create uncreated tags, etc)
-- [ ] do not use typedef for structs
 
 ## Features
 
