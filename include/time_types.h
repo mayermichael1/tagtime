@@ -3,6 +3,7 @@
 
 #define MAX_NEW_TAG_LENGTH  60
 #define MAX_TAG_LINKS       10
+#define MAX_NEW_TAGS        10
 
 typedef struct
 {

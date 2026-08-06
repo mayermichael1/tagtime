@@ -44,15 +44,15 @@ data_from_file(string filename, mem_arena temp)
 
     // string data
     file_data_chunk = data.header.tag_strings_size;
-    mem = create_mem_arena(file_data_chunk + MAX_NEW_TAG_LENGTH);
+    mem = create_mem_arena(file_data_chunk + MAX_NEW_TAG_LENGTH * MAX_NEW_TAGS);
 
-    pointer.tag_data_store_capacity = data.header.tag_strings_size + MAX_NEW_TAG_LENGTH;
+    pointer.tag_data_store_capacity = data.header.tag_strings_size + MAX_NEW_TAG_LENGTH * MAX_NEW_TAGS;
     u8 *tag_data = ARENA_PUSH_ARRAY(&mem, u8, pointer.tag_data_store_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data);
     pointer.tag_data_store = tag_data;
 
-    pointer.tag_capacity = data.header.tag_count + 1;
-    mem = create_mem_arena(sizeof(string) * (data.header.tag_count + 1));
+    pointer.tag_capacity = data.header.tag_count + MAX_NEW_TAGS;
+    mem = create_mem_arena(sizeof(string) * (data.header.tag_count + MAX_NEW_TAGS));
     string *tags = ARENA_PUSH_ARRAY(&mem, string, pointer.tag_capacity);
     pointer.tags = tags;
 
@@ -70,8 +70,8 @@ data_from_file(string filename, mem_arena temp)
 
     // link data
     file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
-    mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
-    pointer.link_capacity = data.header.link_count + MAX_TAG_LINKS;
+    mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS * MAX_NEW_TAGS);
+    pointer.link_capacity = data.header.link_count + MAX_TAG_LINKS * MAX_NEW_TAGS;
     tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, pointer.link_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)links);
     pointer.links = links;

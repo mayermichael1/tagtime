@@ -66,16 +66,21 @@ main(u32 argc, u8** argv)
             tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
-                if(!contains_uncreated_tags(tags))
+                if(contains_uncreated_tags(tags))
                 {
-                    u64 duration = string_to_minutes(time_string);
-                    u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                    link_entry_to_tags(&data, entry_id, tags);
+                    for(u32 i = 0; i < tags.count; i++)
+                    {
+                        if(tags.ids[i] == 0)
+                        {
+                            ASSERT(tags.tags[i].size < MAX_NEW_TAG_LENGTH);                
+                            //TODO: for now this should fail as there is no memory available to create more than one tag at once
+                            tags.ids[i] = insert_tag(&data, tags.tags[i]);
+                        }
+                    }
                 }
-                else
-                {
-                    printf("Not all provided tags exist in the system \n");
-                }
+                u64 duration = string_to_minutes(time_string);
+                u64 entry_id = insert_time_entry(&data, create_entry(duration));
+                link_entry_to_tags(&data, entry_id, tags);
             }
             else
             {
@@ -100,7 +105,7 @@ main(u32 argc, u8** argv)
 
                 //TODO: dynamically create tags if they do not exist -a should be pointless then
                 if(contains_uncreated_tags(tags))
-                {
+                { 
                     printf("Not all provided tags exist \n");
                 }
                 else
