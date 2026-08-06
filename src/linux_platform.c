@@ -13,6 +13,24 @@
 
 global_variable mem_arena platform_local_temp_mem;
 
+void 
+flush_stdin(){
+    s64 read_bytes = 0;
+    do
+    {
+        read_bytes = read(STDIN_FILENO, NULL,  1000);
+    }
+    while(read_bytes != -1);
+}
+
+u8
+read_u8_stdin(){
+    u8 character = 0;
+    read(STDIN_FILENO, &character, 1);
+    flush_stdin();
+    return(character);
+}
+
 void
 set_platform_arena(mem_arena arena)
 {

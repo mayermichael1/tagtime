@@ -12,6 +12,39 @@
 #include "src/linux_platform.c"
 #include "src/time.c"
 
+/**
+ * receives an array of tags and creates arrays that are not in timedata yet
+ *
+ * @param time_data struct to insert tags into
+ * @param tags array that are potentially inserted into the tags
+ *
+ * @return  true if either all tags have existed already or all uncreated tags
+ *          have been created
+ */
+b8
+create_uncreated_tags_assistant(time_data *data, tag_array tags)
+{
+    b8 all_tags_created = true;
+    if(contains_uncreated_tags(tags))
+    {
+        printf("Uncreated tags found.\n"); 
+        for(u32 i = 0; all_tags_created && i < tags.count; i++)
+        {
+            if(tags.ids[i] == 0)
+            {
+                printf("Create tag \"%s\"? (y/n) : ", tags.tags[i].data);
+                fflush(stdout);
+                all_tags_created = read_u8_stdin() == 'y';
+                if(all_tags_created)
+                {
+                    tags.ids[i] = insert_tag(data, tags.tags[i]);
+                }
+            }
+        }
+    }
+    return(all_tags_created);
+}
+
 s32 
 main(u32 argc, u8** argv)
 {
@@ -66,21 +99,16 @@ main(u32 argc, u8** argv)
             tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
-                if(contains_uncreated_tags(tags))
+                if(create_uncreated_tags_assistant(&data, tags))
                 {
-                    for(u32 i = 0; i < tags.count; i++)
-                    {
-                        if(tags.ids[i] == 0)
-                        {
-                            ASSERT(tags.tags[i].size < MAX_NEW_TAG_LENGTH);                
-                            //TODO: for now this should fail as there is no memory available to create more than one tag at once
-                            tags.ids[i] = insert_tag(&data, tags.tags[i]);
-                        }
-                    }
+                    u64 duration = string_to_minutes(time_string);
+                    u64 entry_id = insert_time_entry(&data, create_entry(duration));
+                    link_entry_to_tags(&data, entry_id, tags);
                 }
-                u64 duration = string_to_minutes(time_string);
-                u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                link_entry_to_tags(&data, entry_id, tags);
+                else
+                {
+                    printf("not all tags have been created. entry was not inserted.\n");
+                }
             }
             else
             {
@@ -136,13 +164,9 @@ main(u32 argc, u8** argv)
         }
         else if(cli_contains(args, 'a'))
         {
-            // TODO: add more than one tag at once 
-            if(cli_option_count(args, 't') >= 1)
-            {
-                string tag = cli_get_arg(args, 't', 0);
-                ASSERT(tag.size < MAX_NEW_TAG_LENGTH);
-                insert_tag(&data, tag);
-            }
+            mem_arena temp = create_scoped_arena(temp_mem);
+            tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+            create_uncreated_tags_assistant(&data, tags);
         }
 
         data_to_file(file, data, temp_mem);
