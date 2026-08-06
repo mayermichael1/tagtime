@@ -79,6 +79,7 @@ main(u32 argc, u8** argv)
         printf(" -l list all times tracked to specified tag(s)\n");
         printf(" -s sum all times tracked to specified tag(s)\n");
         printf(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
+        printf(" -n when no tags are given show all entries\n");
     }
     else
     {
