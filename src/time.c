@@ -29,7 +29,8 @@ data_from_file(string filename, mem_arena temp)
     u64 file_offset = sizeof(time_data_header);
     u64 file_data_chunk = data.header.entry_count * sizeof(time_entry);
     mem = create_mem_arena(file_data_chunk + sizeof(time_entry));
-    time_entry *entries = ARENA_PUSH_ARRAY(&mem, time_entry, data.header.entry_count + 1);
+    pointer.entry_capacity = data.header.entry_count + 1;
+    time_entry *entries = ARENA_PUSH_ARRAY(&mem, time_entry, pointer.entry_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)entries); 
     pointer.entries = entries;
 
@@ -44,12 +45,15 @@ data_from_file(string filename, mem_arena temp)
     // string data
     file_data_chunk = data.header.tag_strings_size;
     mem = create_mem_arena(file_data_chunk + MAX_NEW_TAG_LENGTH);
-    u8 *tag_data = ARENA_PUSH_ARRAY(&mem, u8, data.header.tag_strings_size + MAX_NEW_TAG_LENGTH);
+
+    pointer.tag_data_store_capacity = data.header.tag_strings_size + MAX_NEW_TAG_LENGTH;
+    u8 *tag_data = ARENA_PUSH_ARRAY(&mem, u8, pointer.tag_data_store_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data);
     pointer.tag_data_store = tag_data;
 
+    pointer.tag_capacity = data.header.tag_count + 1;
     mem = create_mem_arena(sizeof(string) * (data.header.tag_count + 1));
-    string *tags = ARENA_PUSH_ARRAY(&mem, string, data.header.tag_count + 1);
+    string *tags = ARENA_PUSH_ARRAY(&mem, string, pointer.tag_capacity);
     pointer.tags = tags;
 
     // link up strings with data
@@ -67,7 +71,8 @@ data_from_file(string filename, mem_arena temp)
     // link data
     file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
     mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS);
-    tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, data.header.link_count + MAX_TAG_LINKS);
+    pointer.link_capacity = data.header.link_count + MAX_TAG_LINKS;
+    tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, pointer.link_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)links);
     pointer.links = links;
 
@@ -110,6 +115,7 @@ data_to_file(string filename, time_data data, mem_arena temp)
 u64
 insert_time_entry(time_data *data, time_entry entry)
 {
+    ASSERT(data->header.entry_count < data->data.entry_capacity);
     data->data.entries[data->header.entry_count++] = entry;
     return(data->header.entry_count);
 }
@@ -121,10 +127,15 @@ insert_time_entry(time_data *data, time_entry entry)
  *
  * @param   data pointer
  * @param   tag name to be inserted as a new tag
+ * 
+ * @return  tag_id of newly created tag
  */
-void
+u64
 insert_tag(time_data *data, string tagname)
 {
+    ASSERT(data->header.tag_count < data->data.tag_capacity);
+    ASSERT(tagname.size < MAX_NEW_TAG_LENGTH);
+
     u64 tag_store_size = data->header.tag_strings_size;
     u8 *newtag_data_pointer = &data->data.tag_data_store[tag_store_size];
     for(u32 i=0; i<tagname.size; ++i)
@@ -140,6 +151,7 @@ insert_tag(time_data *data, string tagname)
 
     data->data.tags[data->header.tag_count] = tag;
     data->header.tag_count++;
+    return(data->header.tag_count);
 }
 
 /**
@@ -194,6 +206,7 @@ get_tag_id(time_data data, string tag)
 void
 link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
 {
+    ASSERT(data->header.link_count < data->data.link_capacity);
     u64 last = data->header.link_count;
     for(u32 i=0; i<tags.count; ++i)
     {

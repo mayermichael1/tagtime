@@ -62,9 +62,16 @@ time_data_header;
 typedef struct
 {
     time_entry *entries;
+    u64 entry_capacity;
+
     string *tags;
+    u64 tag_capacity;
+
     u8* tag_data_store;
+    u64 tag_data_store_capacity;
+
     tag_entry_link *links;
+    u64 link_capacity;
 }
 time_data_pointer;
 
