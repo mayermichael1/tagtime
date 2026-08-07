@@ -5,6 +5,17 @@
 #define MAX_TAG_LINKS       10
 #define MAX_NEW_TAGS        10
 
+enum weekday
+{
+    MONDAY,
+    TUESDAY,
+    WEDNESDAY,
+    THURSDAY,
+    FRIDAY,
+    SATURDAY,
+    SUNDAY
+};
+
 typedef struct
 {
     u16 year;

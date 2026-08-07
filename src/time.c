@@ -1,5 +1,11 @@
 #include "include/time_types.h"
 
+#include "include/math.h"
+
+#define DAYSECONDS (24 * 60 * 60)
+#define YEARDAYS  365
+#define EPOCHYEAR  1970 
+
 /**
  * read data from data_file
  *
@@ -408,12 +414,35 @@ number_of_leap_years(u16 year)
     return((year / 4) - ((year / 100) - (year/ 400)));
 }
 
+enum weekday
+day_of_week(u64 timestamp)
+{
+    enum weekday dayow = (timestamp / (DAYSECONDS) + 3) % 7;
+    return(dayow);
+}
+
+struct bound_u64
+week_bounds(u64 timestamp)
+{
+    struct bound_u64 weekbound = {};
+    enum weekday dayow = day_of_week(timestamp);
+    u64 ts_day_midnight = (timestamp / (DAYSECONDS)) * (DAYSECONDS);
+    weekbound.lower = ts_day_midnight - (DAYSECONDS) * dayow;
+    weekbound.upper = ts_day_midnight + (DAYSECONDS) * (7 - dayow) - 1;
+    return(weekbound);
+}
+
+struct bound_u64
+week_bounds_offset(u64 timestamp, s32 week_offset)
+{
+    ASSERT(week_offset > 0 || timestamp > -(week_offset * 7 * DAYSECONDS));
+    return(week_bounds(timestamp + week_offset * 7 * DAYSECONDS));
+}
+
+
 datetime
 seconds_to_timestamp(u64 seconds_since_epoch)
 {
-    u64 DAYSECONDS = 24 * 60 * 60;
-    u32 YEARDAYS = 365;
-    u16 EPOCHYEAR = 1970; 
 
     u64 days_since_epoch = seconds_since_epoch / DAYSECONDS;
     u64 seconds_current_day = seconds_since_epoch - ( days_since_epoch * DAYSECONDS);

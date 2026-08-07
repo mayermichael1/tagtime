@@ -56,6 +56,12 @@ main(u32 argc, u8** argv)
     // f ... optional filename 
     // c ... timestamp for new time tracking followed by a time
     // n ... for list and sum show all entries
+        
+    struct bound_u64 weekbound = week_bounds_offset(seconds_since_epoch(), -1);
+    printf("current week %llu to %llu \n", weekbound.lower, weekbound.upper);
+
+    //TODO: uncomment again
+    /*
     cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hn"));
 
     set_platform_arena(create_mem_arena(KB));
@@ -193,5 +199,6 @@ main(u32 argc, u8** argv)
         data_to_file(file, data, temp_mem);
     }
 
+    */
     return(0);
 }

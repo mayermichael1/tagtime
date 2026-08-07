@@ -39,6 +39,13 @@ typedef struct
 }
 v4f32;
 
+struct 
+bound_u64
+{
+    u64 lower;
+    u64 upper;
+};
+
 
 u64 
 pow_u64(u64 value, u32 exponent)
