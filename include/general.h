@@ -24,6 +24,9 @@ typedef uint8_t     b8;
 typedef u64         umm;
 typedef s64         smm;
 
+#define U64_MIN 0x00000000
+#define U64_MAX (!0x00000000)
+
 #define global_variable static  // may be used for variables is default
 #define internal        static  // may be used for functions default is extern
 #define local_persist   static  // may be used for variables in block scope

@@ -57,12 +57,7 @@ main(u32 argc, u8** argv)
     // c ... timestamp for new time tracking followed by a time
     // n ... for list and sum show all entries
         
-    struct bound_u64 weekbound = week_bounds_offset(seconds_since_epoch(), -1);
-    printf("current week %llu to %llu \n", weekbound.lower, weekbound.upper);
-
-    //TODO: uncomment again
-    /*
-    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hn"));
+    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:"));
 
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
@@ -150,15 +145,27 @@ main(u32 argc, u8** argv)
                     u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
 
                     u64 sum_minutes = 0;
+
+                    struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
+
+                    if(cli_contains(args, 'w'))
+                    {
+                        s64 week_offset = string_to_s64(cli_get_arg(args, 'w', 0));
+                        filter_timestamp = week_bounds_offset(seconds_since_epoch(), week_offset);
+                    }
+
                     for(u32 i=0; i<linked_entries.count; ++i)
                     {
                         u64 entry_id = linked_entries.data[i];
                         time_entry entry = get_entry_by_id(data, entry_id);
-                        sum_minutes += entry.minutes;
-                        if(cli_contains(args, 'l'))
+                        if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
                         {
-                            datetime dt = seconds_to_timestamp(entry.timestamp);
-                            printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                            sum_minutes += entry.minutes;
+                            if(cli_contains(args, 'l'))
+                            {
+                                datetime dt = seconds_to_timestamp(entry.timestamp);
+                                printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                            }
                         }
                     }
                     if(cli_contains(args, 's'))
@@ -171,15 +178,26 @@ main(u32 argc, u8** argv)
             }
             else if(cli_contains(args, 'n'))
             {
+                struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
+
+                if(cli_contains(args, 'w'))
+                {
+                    s64 week_offset = string_to_s64(cli_get_arg(args, 'w', 0));
+                    filter_timestamp = week_bounds_offset(seconds_since_epoch(), week_offset);
+                }
+
                 u64 sum_minutes = 0;
                 for(u32 i=1; i<=data.header.entry_count; ++i)
                 {
                     time_entry entry = get_entry_by_id(data, i);
-                    sum_minutes += entry.minutes;
-                    if(cli_contains(args, 'l'))
+                    if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
                     {
-                        datetime dt = seconds_to_timestamp(entry.timestamp);
-                        printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                        sum_minutes += entry.minutes;
+                        if(cli_contains(args, 'l'))
+                        {
+                            datetime dt = seconds_to_timestamp(entry.timestamp);
+                            printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                        }
                     }
                 }
                 if(cli_contains(args, 's'))
@@ -198,7 +216,5 @@ main(u32 argc, u8** argv)
 
         data_to_file(file, data, temp_mem);
     }
-
-    */
     return(0);
 }

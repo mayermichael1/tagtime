@@ -94,6 +94,27 @@ string_to_u64(string str)
     return(value);
 }
 
+/// try to convert the string to a u64 value
+///
+/// uses [string_to_u64] for conversion of the number but checks for sign 
+/// character at the start
+///
+/// @param string to be converted
+/// @return return the converted value or 0 if not successfull
+s64
+string_to_s64(string str)
+{
+    s64 multiply = 1;
+    if(str.size >= 1)
+    {   
+        if(str.data[0] == '-')
+        {
+            multiply = -1;
+        }
+    }
+    return(multiply * string_to_u64(str));
+}
+
 string 
 string_split(string str, u32 from, u32 to)
 {

@@ -46,6 +46,12 @@ bound_u64
     u64 upper;
 };
 
+b8 
+in_bound_u64_inclusive(u64 value, struct bound_u64 bound)
+{
+    return(value >= bound.lower && value <= bound.upper);
+}
+
 
 u64 
 pow_u64(u64 value, u32 exponent)
@@ -57,6 +63,8 @@ pow_u64(u64 value, u32 exponent)
     }
     return(pow);
 }
+
+
 
 /// BIT OPERATIONS
 
