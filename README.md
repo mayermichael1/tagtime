@@ -8,7 +8,7 @@ Tasks can be tagged with various tags so they can be queried by them later.
 - [x] create new entries through an assistant (create uncreated tags, etc)
 - [ ] bug in cli parser, does not stop upon - in multiple arguments. Intentional?
 - [x] weekly / monthly reports etc
-- [ ] do not use typedef for structs
+- [x] do not use typedef for structs
 - [ ] create printf replacement
       idea: only print a string
       create formatting for the string class so it can be used for other things
