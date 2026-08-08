@@ -524,15 +524,67 @@ seconds_to_timestamp(u64 seconds_since_epoch)
     return(stamp);
 }
 
+u64
+timestamp_to_seconds(datetime dt)
+{
+    u64 ts = 0;
+    ts += dt.second;
+    ts += dt.minute * 60;
+    ts += dt.hour *  60 * 60;
+    ts += (dt.day-1) * DAYSECONDS;
+    for(u32 i = 1; i < dt.month; ++i)
+    {
+        ts += days_in_month(dt.year, i) * DAYSECONDS;
+    }
+    u32 years_as_days_since_epoch = ((dt.year) - EPOCHYEAR) * YEARDAYS;
+    u32 leap_days_since_epoch = number_of_leap_years(dt.year) - number_of_leap_years(EPOCHYEAR);
+    ts += years_as_days_since_epoch * DAYSECONDS;
+    ts += leap_days_since_epoch * DAYSECONDS;
+    return(ts);
+}
+
+struct bound_u64
+month_bounds_offset(u64 timestamp, s16 offset)
+{
+    struct bound_u64 bounds = {};
+    datetime dt = seconds_to_timestamp(timestamp); 
+    dt.hour = 0;
+    dt.minute = 0;
+    dt.second = 0;
+
+    s16 year_offset = offset / 12;
+    s16 month_offset = offset % 12;
+
+    dt.year += year_offset;
+    dt.month += month_offset;
+    if(dt.month == 13)
+    {
+        dt.year++;
+        dt.month = 1;
+    }
+    else if(dt.month == 0)
+    {
+        dt.year--;
+        dt.month = 12;
+    }
+
+    dt.day = 1;
+    bounds.lower = timestamp_to_seconds(dt);
+
+    dt.month++;
+    if(dt.month == 13)
+    {
+        dt.year++;
+        dt.month = 1;
+    }
+    bounds.upper = timestamp_to_seconds(dt) - 1;
+    return(bounds);
+}
+
 struct bound_u64
 month_bounds(u64 timestamp)
 {
-    struct bound_u64 bounds = {};
-    u64 ts_only_day = timestamp_without_hours_minutes_seconds(timestamp); 
-    datetime dt = seconds_to_timestamp(ts_only_day); 
-    bounds.lower = ts_only_day - DAYSECONDS * (dt.day - 1);
-    bounds.upper = ts_only_day + DAYSECONDS * (days_in_month(dt.year, dt.month) - dt.day);
-    return(bounds);
+    return month_bounds_offset(timestamp, 0);
 }
 
 
