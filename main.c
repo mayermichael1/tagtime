@@ -56,6 +56,9 @@ main(u32 argc, u8** argv)
     // f ... optional filename 
     // c ... timestamp for new time tracking followed by a time
     // n ... for list and sum show all entries
+    //
+    struct bound_u64 monthbound = month_bounds(seconds_since_epoch());
+    printf("%llu to %llu\n", monthbound.lower, monthbound.upper);
         
     cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:"));
 

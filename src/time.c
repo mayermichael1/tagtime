@@ -421,12 +421,18 @@ day_of_week(u64 timestamp)
     return(dayow);
 }
 
+u64 
+timestamp_without_hours_minutes_seconds(u64 timestamp)
+{
+    return((timestamp / (DAYSECONDS)) * (DAYSECONDS));
+}
+
 struct bound_u64
 week_bounds(u64 timestamp)
 {
     struct bound_u64 weekbound = {};
     enum weekday dayow = day_of_week(timestamp);
-    u64 ts_day_midnight = (timestamp / (DAYSECONDS)) * (DAYSECONDS);
+    u64 ts_day_midnight = timestamp_without_hours_minutes_seconds(timestamp);
     weekbound.lower = ts_day_midnight - (DAYSECONDS) * dayow;
     weekbound.upper = ts_day_midnight + (DAYSECONDS) * (7 - dayow) - 1;
     return(weekbound);
@@ -439,6 +445,39 @@ week_bounds_offset(u64 timestamp, s32 week_offset)
     return(week_bounds(timestamp + week_offset * 7 * DAYSECONDS));
 }
 
+u8
+days_in_month(u16 year, u8 month)
+{
+    u8 days = 0;
+    switch(month)
+    {
+        case 1: 
+        case 3: 
+        case 5: 
+        case 7: 
+        case 8:
+        case 10:
+        case 12:
+            days = 31;
+            break;
+        case 4:
+        case 6:
+        case 9:
+        case 11:
+            days = 30;
+            break;
+        case 2:
+            {
+                days = 28;
+                if(is_leap_year(year))
+                {
+                    days = 29;
+                }
+            }
+            break;
+    }
+    return(days);
+}
 
 datetime
 seconds_to_timestamp(u64 seconds_since_epoch)
@@ -467,18 +506,11 @@ seconds_to_timestamp(u64 seconds_since_epoch)
     //MONTH_DAY_BORDER is the day at which the current month is over
     //MONTH_DAY_BORDER[0] is JANUARY after 31 days january is over and so on
     u32 MONTH_DAY_BORDER[12];
-    MONTH_DAY_BORDER[0] = 31; // JAN 
-    MONTH_DAY_BORDER[1] = MONTH_DAY_BORDER[0] + 28 + ((is_leap_year(stamp.year)) ? 1 : 0); // FEB
-    MONTH_DAY_BORDER[2] = MONTH_DAY_BORDER[1] + 31; // MAR
-    MONTH_DAY_BORDER[3] = MONTH_DAY_BORDER[2] + 30; // APR
-    MONTH_DAY_BORDER[4] = MONTH_DAY_BORDER[3] + 31; // MAY
-    MONTH_DAY_BORDER[5] = MONTH_DAY_BORDER[4] + 30; // JUN
-    MONTH_DAY_BORDER[6] = MONTH_DAY_BORDER[5] + 31; // JUL
-    MONTH_DAY_BORDER[7] = MONTH_DAY_BORDER[6] + 31; // AUG
-    MONTH_DAY_BORDER[8] = MONTH_DAY_BORDER[7] + 30; // SEP
-    MONTH_DAY_BORDER[9] = MONTH_DAY_BORDER[8] + 31; // OCT
-    MONTH_DAY_BORDER[10] = MONTH_DAY_BORDER[9] + 30; // NOV
-    MONTH_DAY_BORDER[11] = MONTH_DAY_BORDER[10] + 31; // DEC
+    MONTH_DAY_BORDER[0] = days_in_month(stamp.year,1);
+    for(u32 i = 1; i < 12; ++i)
+    {
+        MONTH_DAY_BORDER[i] = MONTH_DAY_BORDER[i-1] + days_in_month(stamp.year,i+1);
+    }
 
     for(u8 month = 12; stamp.day == 0 && month > 0; --month)
     {
@@ -491,3 +523,16 @@ seconds_to_timestamp(u64 seconds_since_epoch)
 
     return(stamp);
 }
+
+struct bound_u64
+month_bounds(u64 timestamp)
+{
+    struct bound_u64 bounds = {};
+    u64 ts_only_day = timestamp_without_hours_minutes_seconds(timestamp); 
+    datetime dt = seconds_to_timestamp(ts_only_day); 
+    bounds.lower = ts_only_day - DAYSECONDS * (dt.day - 1);
+    bounds.upper = ts_only_day + DAYSECONDS * (days_in_month(dt.year, dt.month) - dt.day);
+    return(bounds);
+}
+
+
