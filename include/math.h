@@ -6,7 +6,7 @@
 #define MIN(a, b) (a < b) ? a : b;
 #define MAX(a, b) (a > b) ? a : b;
 
-typedef union
+union v2u32
 {
     struct 
     {
@@ -18,29 +18,25 @@ typedef union
         u32 width;
         u32 height;
     };
-}
-v2u32;
+};
 
-typedef struct
+struct v4u8
 {
     u8 r;
     u8 g;
     u8 b;
     u8 a;
-}
-v4u8;
+};
 
-typedef struct
+struct v4f32
 {
     f32 r;
     f32 g;
     f32 b;
     f32 a;
-}
-v4f32;
+};
 
-struct 
-bound_u64
+struct bound_u64
 {
     u64 lower;
     u64 upper;

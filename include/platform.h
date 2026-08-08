@@ -4,8 +4,8 @@
 #include "general.h"
 #include "string.h"
 
-typedef struct _mem_arena mem_arena;
-typedef struct _string_array string_array;
+struct mem_arena;
+struct string_array;
 
 ///==========================================================================///
 ///                             GENERAL                                      ///
@@ -25,22 +25,22 @@ typedef struct _string_array string_array;
  *          platform layer will never need much memory anyways
  */
 void
-set_platform_arena(mem_arena arena);
+set_platform_arena(struct mem_arena arena);
 
 u64
-get_file_size(string filename);
+get_file_size(struct string filename);
 
 void
-read_file(string filename, u64 len, u8 *buffer);
+read_file(struct string filename, u64 len, u8 *buffer);
 
 void
-read_file_from(string filename, u64 from, u64 len, u8 *buffer);
+read_file_from(struct string filename, u64 from, u64 len, u8 *buffer);
 
 void
-write_file(string filename, u64 buffer_size, u8 *buffer);
+write_file(struct string filename, u64 buffer_size, u8 *buffer);
 
 void
-append_file(string filename, u64 buffer_size, u8 *buffer);
+append_file(struct string filename, u64 buffer_size, u8 *buffer);
 
 umm
 allocate(umm size);
@@ -51,7 +51,7 @@ deallocate(umm start_address, umm size);
 u64
 seconds_since_epoch();
 
-string
+struct string
 get_data_directory();
 
 u8 
@@ -63,30 +63,27 @@ read_u8_stdin();
 
 #define CLI_ARGS_CAPACITY 32
 
-typedef enum
+enum cli_argument_type
 {
     CLI_ARGUMENT_FLAG = 0,
     CLI_ARGUMENT_ONE,
     CLI_ARGUMENT_ONE_TO_MANY
-}
-cli_argument_type;
+};
 
-typedef struct
+struct cli_argument
 {
     u8      option;
     u8**    argv_pointer;
     u32     count;
-    cli_argument_type type;
-}
-cli_argument;
+    enum cli_argument_type type;
+};
 
-typedef struct
+struct cli_arguments
 {
-    string program_name;
-    cli_argument args[CLI_ARGS_CAPACITY];
+    struct string program_name;
+    struct cli_argument args[CLI_ARGS_CAPACITY];
     u32 errors;
-}
-cli_arguments;
+};
 
 u8
 _cli_args_hash(u8 option)
@@ -95,7 +92,7 @@ _cli_args_hash(u8 option)
 }
 
 void
-_cli_args_insert(cli_arguments *args, cli_argument arg)
+_cli_args_insert(struct cli_arguments *args, struct cli_argument arg)
 {
     u8 hash = _cli_args_hash(arg.option);
     b8 vacant = true;
@@ -111,7 +108,7 @@ _cli_args_insert(cli_arguments *args, cli_argument arg)
 }
 
 s16
-_cli_arguments_find_position(cli_arguments arguments, u8 option)
+_cli_arguments_find_position(struct cli_arguments arguments, u8 option)
 {
     u8 hash = _cli_args_hash(option);
     s16 index = -1;
@@ -152,22 +149,22 @@ _cli_arguments_find_position(cli_arguments arguments, u8 option)
  *
  * @return arguments structure containing parsed arguments
  */
-cli_arguments
-cli_parse(u32 argc, u8** argv, string options)
+struct cli_arguments
+cli_parse(u32 argc, u8** argv, struct string options)
 {
-    cli_arguments cli_args = {};
+    struct cli_arguments cli_args = {};
     cli_args.program_name = create_string(argv[0]);
 
     for(u32 i = 1; i < argc; ++i)
     {
-        string arg = create_string(argv[i]);
+        struct string arg = create_string(argv[i]);
         if(arg.data[0] == '-' && arg.data[1] != 0)
         { 
             u8 find_option = arg.data[1];
             s64 pos = string_find_u8(options, find_option);
             if(pos != -1)
             {
-                cli_argument argument = {};
+                struct cli_argument argument = {};
                 argument.option = find_option;
                 
                 u8 modifier = options.data[pos+1];
@@ -231,7 +228,7 @@ cli_parse(u32 argc, u8** argv, string options)
  *  @return true if options exists
  */
 b8
-cli_contains(cli_arguments arguments, u8 option)
+cli_contains(struct cli_arguments arguments, u8 option)
 {
     return(_cli_arguments_find_position(arguments, option) != -1);
 }
@@ -245,7 +242,7 @@ cli_contains(cli_arguments arguments, u8 option)
  *  @return count of arguments
  */
 u32
-cli_option_count(cli_arguments arguments, u8 option)
+cli_option_count(struct cli_arguments arguments, u8 option)
 {
     s16 index = _cli_arguments_find_position(arguments, option);
     u32 count = 0;
@@ -265,11 +262,11 @@ cli_option_count(cli_arguments arguments, u8 option)
  *
  *  @return string containing the argument 
  */
-string
-cli_get_arg(cli_arguments arguments, u8 option, u32 index)
+struct string
+cli_get_arg(struct cli_arguments arguments, u8 option, u32 index)
 {    
     s16 i = _cli_arguments_find_position(arguments, option);
-    string arg = create_string("");
+    struct string arg = create_string("");
     if(i != -1 && index < cli_option_count(arguments, option))
     {
         arg = create_string(arguments.args[i].argv_pointer[index]);
@@ -286,7 +283,7 @@ cli_get_arg(cli_arguments arguments, u8 option, u32 index)
  *
  *  @return string array containing all arguments
  */
-string_array
-cli_get_args(cli_arguments arguments, u8 option, mem_arena *arena);
+struct string_array
+cli_get_args(struct cli_arguments arguments, u8 option, struct mem_arena *arena);
 
 #endif

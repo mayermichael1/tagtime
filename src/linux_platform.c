@@ -11,7 +11,7 @@
 #include "include/memory.h"
 #include "include/string_memory.h"
 
-global_variable mem_arena platform_local_temp_mem;
+global_variable struct mem_arena platform_local_temp_mem;
 
 void 
 flush_stdin(){
@@ -32,13 +32,13 @@ read_u8_stdin(){
 }
 
 void
-set_platform_arena(mem_arena arena)
+set_platform_arena(struct mem_arena arena)
 {
     platform_local_temp_mem = arena;
 }
 
 u64 
-get_file_size(string filename)
+get_file_size(struct string filename)
 {
     struct stat st;
     const char *cfile = to_c_string(filename, &platform_local_temp_mem);
@@ -51,13 +51,13 @@ get_file_size(string filename)
 }
 
 void
-read_file(string filename, u64 len, u8 *buffer)
+read_file(struct string filename, u64 len, u8 *buffer)
 {
     read_file_from(filename, 0, len, buffer);
 }
 
 void
-read_file_from(string filename, u64 from, u64 len, u8 *buffer)
+read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
 {
     s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_RDONLY);
 
@@ -70,9 +70,9 @@ read_file_from(string filename, u64 from, u64 len, u8 *buffer)
 }
 
 void
-write_file(string filename, u64 file_size, u8 *buffer)
+write_file(struct string filename, u64 file_size, u8 *buffer)
 {
-    string dirname = string_split_to(filename, string_find_last(filename, '/'));
+    struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     const char *dir = to_c_string(dirname, &platform_local_temp_mem);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
@@ -89,9 +89,9 @@ write_file(string filename, u64 file_size, u8 *buffer)
 
 //TODO: massive code duplication from write_file
 void
-append_file(string filename, u64 file_size, u8 *buffer)
+append_file(struct string filename, u64 file_size, u8 *buffer)
 {
-    string dirname = string_split_to(filename, string_find_last(filename, '/'));
+    struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     const char *dir = to_c_string(dirname, &platform_local_temp_mem);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
@@ -131,10 +131,10 @@ seconds_since_epoch()
     return(time(NULL));
 }
 
-string
+struct string
 get_data_directory()
 {
-    string dir = create_string(getenv("XDG_DATA_HOME"));
+    struct string dir = create_string(getenv("XDG_DATA_HOME"));
     // TODO: determinine application name dynamically somehow
     // TODO: stringbuilder for appending strings here. right now string 
     //       is just duplicated and stored in abcking store again
@@ -150,11 +150,11 @@ get_data_directory()
     return(dir);
 }
 
-string_array
-cli_get_args(cli_arguments arguments, u8 option, mem_arena *arena)
+struct string_array
+cli_get_args(struct cli_arguments arguments, u8 option, struct mem_arena *arena)
 {
-    string_array arr = {.count = cli_option_count(arguments, option)};
-    arr.data = ARENA_PUSH_ARRAY(arena, string, arr.count);
+    struct string_array arr = {.count = cli_option_count(arguments, option)};
+    arr.data = ARENA_PUSH_ARRAY(arena, struct string, arr.count);
 
     for(u32 i = 0; i < arr.count; ++i)
     {

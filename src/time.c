@@ -17,26 +17,26 @@
  *  
  * @return  time_data struct containing the read data
  */
-time_data 
-data_from_file(string filename, mem_arena temp)
+struct time_data 
+data_from_file(struct string filename, struct mem_arena temp)
 {
-    time_data data;
+    struct time_data data;
 
-    mem_arena mem = create_mem_arena(sizeof(time_data_header));
-    time_data_header *header = ARENA_PUSH_STRUCT(&mem, time_data_header);
-    read_file(filename, sizeof(time_data_header), (u8*)header);
+    struct mem_arena mem = create_mem_arena(sizeof(struct time_data_header));
+    struct time_data_header *header = ARENA_PUSH_STRUCT(&mem, struct time_data_header);
+    read_file(filename, sizeof(struct time_data_header), (u8*)header);
 
     data.header = *header; 
     
     // actual data
-    time_data_pointer pointer;
+    struct time_data_pointer pointer;
 
     // time_entries
-    u64 file_offset = sizeof(time_data_header);
-    u64 file_data_chunk = data.header.entry_count * sizeof(time_entry);
-    mem = create_mem_arena(file_data_chunk + sizeof(time_entry));
+    u64 file_offset = sizeof(struct time_data_header);
+    u64 file_data_chunk = data.header.entry_count * sizeof(struct time_entry);
+    mem = create_mem_arena(file_data_chunk + sizeof(struct time_entry));
     pointer.entry_capacity = data.header.entry_count + 1;
-    time_entry *entries = ARENA_PUSH_ARRAY(&mem, time_entry, pointer.entry_capacity);
+    struct time_entry *entries = ARENA_PUSH_ARRAY(&mem, struct time_entry, pointer.entry_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)entries); 
     pointer.entries = entries;
 
@@ -58,15 +58,15 @@ data_from_file(string filename, mem_arena temp)
     pointer.tag_data_store = tag_data;
 
     pointer.tag_capacity = data.header.tag_count + MAX_NEW_TAGS;
-    mem = create_mem_arena(sizeof(string) * (data.header.tag_count + MAX_NEW_TAGS));
-    string *tags = ARENA_PUSH_ARRAY(&mem, string, pointer.tag_capacity);
+    mem = create_mem_arena(sizeof(struct string) * (data.header.tag_count + MAX_NEW_TAGS));
+    struct string *tags = ARENA_PUSH_ARRAY(&mem, struct string, pointer.tag_capacity);
     pointer.tags = tags;
 
     // link up strings with data
     u64 string_offset = 0;
     for(u32 i = 0; i < data.header.tag_count; ++i)
     {
-        string *tag = &pointer.tags[i];
+        struct string *tag = &pointer.tags[i];
         tag->size = tag_lengths[i];
         tag->data = &tag_data[string_offset];
         string_offset += tag->size;
@@ -75,10 +75,10 @@ data_from_file(string filename, mem_arena temp)
     file_offset += file_data_chunk;
 
     // link data
-    file_data_chunk = data.header.link_count * sizeof(tag_entry_link);
-    mem = create_mem_arena(file_data_chunk + sizeof(tag_entry_link) * MAX_TAG_LINKS * MAX_NEW_TAGS);
+    file_data_chunk = data.header.link_count * sizeof(struct tag_entry_link);
+    mem = create_mem_arena(file_data_chunk + sizeof(struct tag_entry_link) * MAX_TAG_LINKS * MAX_NEW_TAGS);
     pointer.link_capacity = data.header.link_count + MAX_TAG_LINKS * MAX_NEW_TAGS;
-    tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, tag_entry_link, pointer.link_capacity);
+    struct tag_entry_link *links = ARENA_PUSH_ARRAY(&mem, struct tag_entry_link, pointer.link_capacity);
     read_file_from(filename, file_offset, file_data_chunk, (u8*)links);
     pointer.links = links;
 
@@ -95,10 +95,10 @@ data_from_file(string filename, mem_arena temp)
  *          //TODO: remove temp_memory usage
  */
 void 
-data_to_file(string filename, time_data data, mem_arena temp)
+data_to_file(struct string filename, struct time_data data, struct mem_arena temp)
 {
     write_file(filename, sizeof(data.header), (u8*)&data.header);
-    append_file(filename, sizeof(time_entry) * data.header.entry_count, (u8*)data.data.entries);
+    append_file(filename, sizeof(struct time_entry) * data.header.entry_count, (u8*)data.data.entries);
 
     u32 *tag_lengths = ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
     for(u32 i = 0; i < data.header.tag_count; ++i)
@@ -107,7 +107,7 @@ data_to_file(string filename, time_data data, mem_arena temp)
     }
     append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths);
     append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store);
-    append_file(filename, sizeof(tag_entry_link) * data.header.link_count, (u8*)data.data.links);
+    append_file(filename, sizeof(struct tag_entry_link) * data.header.link_count, (u8*)data.data.links);
 }
 
 /**
@@ -119,7 +119,7 @@ data_to_file(string filename, time_data data, mem_arena temp)
  * @return  index of the newly created entry (index in array + 1)
  */
 u64
-insert_time_entry(time_data *data, time_entry entry)
+insert_time_entry(struct time_data *data, struct time_entry entry)
 {
     ASSERT(data->header.entry_count < data->data.entry_capacity);
     data->data.entries[data->header.entry_count++] = entry;
@@ -137,7 +137,7 @@ insert_time_entry(time_data *data, time_entry entry)
  * @return  tag_id of newly created tag
  */
 u64
-insert_tag(time_data *data, string tagname)
+insert_tag(struct time_data *data, struct string tagname)
 {
     ASSERT(data->header.tag_count < data->data.tag_capacity);
     ASSERT(tagname.size < MAX_NEW_TAG_LENGTH);
@@ -149,7 +149,7 @@ insert_tag(time_data *data, string tagname)
         newtag_data_pointer[i] = tagname.data[i];
     }
 
-    string tag = {};
+    struct string tag = {};
     tag.size = tagname.size;
     tag.data = newtag_data_pointer; 
 
@@ -167,10 +167,10 @@ insert_tag(time_data *data, string tagname)
  *
  * @return  time_entry structure containing the duration and the current timestamp
  */
-time_entry
+struct time_entry
 create_entry(u64 duration)
 {
-    time_entry entry;
+    struct time_entry entry;
     entry.minutes = duration;
     entry.timestamp = seconds_since_epoch();
     return(entry);
@@ -183,7 +183,7 @@ create_entry(u64 duration)
  * @param   tagname which will be searched for
  */
 u64
-get_tag_id(time_data data, string tag)
+get_tag_id(struct time_data data, struct string tag)
 {
     s64 id = 0;
     for(u32 i=0; id == 0 && i<data.header.tag_count; ++i)
@@ -210,7 +210,7 @@ get_tag_id(time_data data, string tag)
  * @param   tags array containing all arrays to be linked to
  */
 void
-link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
+link_entry_to_tags(struct time_data *data, u64 entry_id, struct tag_array tags)
 {
     ASSERT(data->header.link_count < data->data.link_capacity);
     u64 last = data->header.link_count;
@@ -218,7 +218,7 @@ link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
     {
         if(tags.ids[i] != 0)
         {
-            data->data.links[last+i] = (tag_entry_link){
+            data->data.links[last+i] = (struct tag_entry_link){
                 .entry_id = entry_id,
                 .tag_id = tags.ids[i]
             };
@@ -234,7 +234,7 @@ link_entry_to_tags(time_data *data, u64 entry_id, tag_array tags)
  *          true otherwise
  */
 b8
-contains_uncreated_tags(tag_array tags)
+contains_uncreated_tags(struct tag_array tags)
 {
     b8 tag_not_existing = false;
 
@@ -255,16 +255,16 @@ contains_uncreated_tags(tag_array tags)
  * allocates a new array which reserves the memory to contain all entries 
  * but ultimately only "contains" (count) the linked entries
  */
-u64_array
-entries_linked_to_tag(time_data data, u64 tagid, mem_arena *memory)
+struct u64_array
+entries_linked_to_tag(struct time_data data, u64 tagid, struct mem_arena *memory)
 {
-    u64_array entries = {};
+    struct u64_array entries = {};
     //NOTE: entries will never be larger than all entries so reserve this amount of space
     entries.data = ARENA_PUSH_ARRAY(memory, u64, data.header.entry_count);
 
     for(u32 i=0; i<data.header.link_count; ++i)
     {
-        tag_entry_link link = data.data.links[i];
+        struct tag_entry_link link = data.data.links[i];
         if(link.tag_id == tagid)
         {
             entries.data[entries.count] = link.entry_id;
@@ -280,16 +280,16 @@ entries_linked_to_tag(time_data data, u64 tagid, mem_arena *memory)
  *
  * allocates one array that could hold all created entries
  */
-u64_array
-get_entries_linked_to_tags(time_data data, tag_array tags, mem_arena *memory)
+struct u64_array
+get_entries_linked_to_tags(struct time_data data, struct tag_array tags, struct mem_arena *memory)
 {
-    u64_array indices = create_incrementing_array(memory, data.header.entry_count);
+    struct u64_array indices = create_incrementing_array(memory, data.header.entry_count);
 
     for(u32 i=0; i<tags.count; ++i) 
     {
-        mem_arena loop_local_mem = *memory;
+        struct mem_arena loop_local_mem = *memory;
         u64 tag_id = tags.ids[i];
-        u64_array entries_for_tag = entries_linked_to_tag(data, tag_id, &loop_local_mem); 
+        struct u64_array entries_for_tag = entries_linked_to_tag(data, tag_id, &loop_local_mem); 
         intersect_arrays(&indices, entries_for_tag);
     }
     return(indices);
@@ -301,7 +301,7 @@ get_entries_linked_to_tags(time_data data, tag_array tags, mem_arena *memory)
 /// - if , or . is found expect hhhh,mmmm
 /// - if no special character is found excpect minutes
 u64 
-string_to_minutes(string str)
+string_to_minutes(struct string str)
 {
     s64 colon_index = string_find_u8(str,':');
     s64 komma_index = string_find_u8(str,',');
@@ -317,8 +317,8 @@ string_to_minutes(string str)
         ASSERT(index >= 1);
         ASSERT(index < (str.size-1));
 
-        string hour_string = string_split_to(str, index-1);
-        string minute_string = string_split_from(str, index+1);
+        struct string hour_string = string_split_to(str, index-1);
+        struct string minute_string = string_split_from(str, index+1);
 
         u32 hours = string_to_u64(hour_string); 
         u32 decimal = string_to_u64(minute_string);
@@ -331,8 +331,8 @@ string_to_minutes(string str)
         ASSERT(colon_index >= 1);
         ASSERT(colon_index < (str.size-1));
 
-        string hour_string = string_split_to(str, colon_index-1);
-        string minute_string = string_split_from(str, colon_index+1);
+        struct string hour_string = string_split_to(str, colon_index-1);
+        struct string minute_string = string_split_from(str, colon_index+1);
 
         u32 hours = string_to_u64(hour_string); 
         minutes = string_to_u64(minute_string);
@@ -352,10 +352,10 @@ string_to_minutes(string str)
  *
  * if id is not found returns an empty time_entry
  */
-time_entry
-get_entry_by_id(time_data data, u64 entry_id)
+struct time_entry
+get_entry_by_id(struct time_data data, u64 entry_id)
 {
-    time_entry entry = {};
+    struct time_entry entry = {};
     if(entry_id <= data.header.entry_count)
     {
         entry = data.data.entries[entry_id-1];
@@ -366,10 +366,10 @@ get_entry_by_id(time_data data, u64 entry_id)
 /**
  * take minutes and part them to days, hours and minutes
  */
-duration_minutes
+struct duration_minutes
 minute_to_time(u64 minutes)
 {
-    duration_minutes t;
+    struct duration_minutes t;
     u64 rest = minutes;
 
     t.days = rest / (60 * 24);
@@ -387,10 +387,10 @@ minute_to_time(u64 minutes)
  * takes an array of cli_argumnts (essentially string array) and create a
  */
 //TODO: time_data does not need to be a pointer here
-tag_array
-tags_to_array(time_data *data, string_array tags, mem_arena *memory)
+struct tag_array
+tags_to_array(struct time_data *data, struct string_array tags, struct mem_arena *memory)
 {
-    tag_array arr = {};
+    struct tag_array arr = {};
     arr.ids = ARENA_PUSH_ARRAY(memory, u64, tags.count);
     arr.tags = tags.data;
     arr.count = tags.count;
@@ -479,14 +479,14 @@ days_in_month(u16 year, u8 month)
     return(days);
 }
 
-datetime
+struct datetime
 seconds_to_timestamp(u64 seconds_since_epoch)
 {
 
     u64 days_since_epoch = seconds_since_epoch / DAYSECONDS;
     u64 seconds_current_day = seconds_since_epoch - ( days_since_epoch * DAYSECONDS);
 
-    datetime stamp = {};
+    struct datetime stamp = {};
     
     // time of the day
     stamp.second = seconds_current_day % 60;
@@ -525,7 +525,7 @@ seconds_to_timestamp(u64 seconds_since_epoch)
 }
 
 u64
-timestamp_to_seconds(datetime dt)
+timestamp_to_seconds(struct datetime dt)
 {
     u64 ts = 0;
     ts += dt.second;
@@ -547,7 +547,7 @@ struct bound_u64
 month_bounds_offset(u64 timestamp, s16 offset)
 {
     struct bound_u64 bounds = {};
-    datetime dt = seconds_to_timestamp(timestamp); 
+    struct datetime dt = seconds_to_timestamp(timestamp); 
     dt.hour = 0;
     dt.minute = 0;
     dt.second = 0;

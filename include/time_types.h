@@ -16,7 +16,7 @@ enum weekday
     SUNDAY
 };
 
-typedef struct
+struct datetime
 {
     u16 year;
     u8 month;
@@ -26,72 +26,62 @@ typedef struct
     u8 minute;
     u8 second;
 
-} 
-datetime;
-
-typedef struct
+};
+struct duration_minutes
 {
     u64 days;
     u64 hours;
     u64 minutes;
 
     u64 sum_minutes;
-}
-duration_minutes;
+};
 
-typedef struct 
+struct time_entry
 {
     u64 timestamp;
     u64 minutes;
-}
-time_entry;
+};
 
-typedef struct
+struct tag_array
 {
     u64 count;
-    string *tags;
+    struct string *tags;
     u64 *ids; //NOTE: this is an containing the ids for the tags in *tags 
               //        0 means it does not exist
-}
-tag_array;
-
-typedef struct
+};
+struct tag_entry_link
 {
     u64 entry_id;
     u64 tag_id;
-}
-tag_entry_link;
+};
 
-typedef struct
+struct time_data_header
 {
     u64 entry_count;
     u64 tag_count;
     u64 tag_strings_size;
     u64 link_count;
-}
-time_data_header;
+};
 
-typedef struct
+struct time_data_pointer
 {
-    time_entry *entries;
+    struct time_entry *entries;
     u64 entry_capacity;
 
-    string *tags;
+    struct string *tags;
     u64 tag_capacity;
 
     u8* tag_data_store;
     u64 tag_data_store_capacity;
 
-    tag_entry_link *links;
+    struct tag_entry_link *links;
     u64 link_capacity;
-}
-time_data_pointer;
+};
 
-typedef struct
+struct time_data
 {
-    time_data_header header; 
-    time_data_pointer data;
-}
-time_data;
+    struct time_data_header header; 
+    struct time_data_pointer data;
+};
 
 #endif // TIME_TYPES_H

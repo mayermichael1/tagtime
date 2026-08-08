@@ -22,7 +22,7 @@
  *          have been created
  */
 b8
-create_uncreated_tags_assistant(time_data *data, tag_array tags)
+create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags)
 {
     b8 all_tags_created = true;
     if(contains_uncreated_tags(tags))
@@ -59,14 +59,14 @@ main(u32 argc, u8** argv)
     // w ... filter entries for given week
     // m ... filter entries for given month
 
-    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
+    struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
-    mem_arena temp_mem = create_mem_arena(10 * MB);
+    struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
-    string file = {};
+    struct string file = {};
 
     if(cli_contains(args, 'h'))
     {
@@ -97,13 +97,13 @@ main(u32 argc, u8** argv)
             file = string_append(get_data_directory(), create_string("tagtime.data"), &temp_mem);
         }
 
-        time_data data = data_from_file(file, temp_mem);
+        struct time_data data = data_from_file(file, temp_mem);
         
         if(cli_contains(args, 'c'))
         {
-            string time_string =  cli_get_arg(args, 'c', 0);
-            mem_arena temp = create_scoped_arena(temp_mem); 
-            tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+            struct string time_string =  cli_get_arg(args, 'c', 0);
+            struct mem_arena temp = create_scoped_arena(temp_mem); 
+            struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
                 if(create_uncreated_tags_assistant(&data, tags))
@@ -129,14 +129,14 @@ main(u32 argc, u8** argv)
                 printf("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
-                    mem_arena temp = create_scoped_arena(temp_mem);
+                    struct mem_arena temp = create_scoped_arena(temp_mem);
                     printf(" - %s\n", to_c_string(data.data.tags[i], &temp));
                 }
             }
             else if(cli_option_count(args, 't') != 0)
             {
-                mem_arena temp = create_scoped_arena(temp_mem); 
-                tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+                struct mem_arena temp = create_scoped_arena(temp_mem); 
+                struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
 
                 //TODO: dynamically create tags if they do not exist -a should be pointless then
                 if(contains_uncreated_tags(tags))
@@ -145,8 +145,10 @@ main(u32 argc, u8** argv)
                 }
                 else
                 {
+                    //TODO: basically the same happens in the -n options 
+                    //      maybe pull out this code in some way 
                     umm before = temp.current; //TODO: for assertation may be removed
-                    u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
+                    struct u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
 
                     u64 sum_minutes = 0;
 
@@ -168,20 +170,20 @@ main(u32 argc, u8** argv)
                     for(u32 i=0; i<linked_entries.count; ++i)
                     {
                         u64 entry_id = linked_entries.data[i];
-                        time_entry entry = get_entry_by_id(data, entry_id);
+                        struct time_entry entry = get_entry_by_id(data, entry_id);
                         if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
                         {
                             sum_minutes += entry.minutes;
                             if(cli_contains(args, 'l'))
                             {
-                                datetime dt = seconds_to_timestamp(entry.timestamp);
+                                struct datetime dt = seconds_to_timestamp(entry.timestamp);
                                 printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                             }
                         }
                     }
                     if(cli_contains(args, 's'))
                     {
-                        duration_minutes time = minute_to_time(sum_minutes);
+                        struct duration_minutes time = minute_to_time(sum_minutes);
                         printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                     }
                     ASSERT(temp.current == (before + data.header.entry_count * sizeof(u64)));
@@ -206,28 +208,28 @@ main(u32 argc, u8** argv)
                 u64 sum_minutes = 0;
                 for(u32 i=1; i<=data.header.entry_count; ++i)
                 {
-                    time_entry entry = get_entry_by_id(data, i);
+                    struct time_entry entry = get_entry_by_id(data, i);
                     if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
                     {
                         sum_minutes += entry.minutes;
                         if(cli_contains(args, 'l'))
                         {
-                            datetime dt = seconds_to_timestamp(entry.timestamp);
+                            struct datetime dt = seconds_to_timestamp(entry.timestamp);
                             printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                         }
                     }
                 }
                 if(cli_contains(args, 's'))
                 {
-                    duration_minutes time = minute_to_time(sum_minutes);
+                    struct duration_minutes time = minute_to_time(sum_minutes);
                     printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
                 }
             }
         }
         else if(cli_contains(args, 'a'))
         {
-            mem_arena temp = create_scoped_arena(temp_mem);
-            tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+            struct mem_arena temp = create_scoped_arena(temp_mem);
+            struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             create_uncreated_tags_assistant(&data, tags);
         }
 

@@ -1,17 +1,17 @@
 #ifndef STRING_H
 #define STRING_H
 
-typedef struct 
+struct string
 {
     u32 size; //NOTE: this needs to be first for serialization
     u8 *data;
 }
-string;
+;
 
-string
+struct string
 create_string(const char* value)
 {
-    string str = {};
+    struct string str = {};
     if(value != NULL)
     {
         str.data = (u8*)value;
@@ -37,7 +37,7 @@ create_string(const char* value)
 ///
 /// @return returns either the index or -1 if the character can not be found
 s64
-string_find_u8(string str, u8 character)
+string_find_u8(struct string str, u8 character)
 {
     s64 index = -1;
     for(u32 i = 0; i < str.size && index == -1; ++i)
@@ -51,7 +51,7 @@ string_find_u8(string str, u8 character)
 }
 
 s64 
-string_find_last(string str, u8 character)
+string_find_last(struct string str, u8 character)
 {    
     s64 index = -1;
     if(str.size != 0)
@@ -77,7 +77,7 @@ string_find_last(string str, u8 character)
 /// @param string to be converted
 /// @return return the converted value or 0 if not successfull
 u64
-string_to_u64(string str)
+string_to_u64(struct string str)
 {
     u64 value = 0;
     for(u32 i = 0; i < str.size; ++i)
@@ -102,7 +102,7 @@ string_to_u64(string str)
 /// @param string to be converted
 /// @return return the converted value or 0 if not successfull
 s64
-string_to_s64(string str)
+string_to_s64(struct string str)
 {
     s64 multiply = 1;
     if(str.size >= 1)
@@ -115,29 +115,29 @@ string_to_s64(string str)
     return(multiply * string_to_u64(str));
 }
 
-string 
-string_split(string str, u32 from, u32 to)
+struct string 
+string_split(struct string str, u32 from, u32 to)
 {
-    string split = str;
+    struct string split = str;
     split.data = &str.data[from];
     split.size = to - from + 1;
     return(split);
 }
 
-string 
-string_split_from(string str, u32 from)
+struct string 
+string_split_from(struct string str, u32 from)
 {
     return(string_split(str, from, str.size-1));
 }
 
-string
-string_split_to(string str, u32 to)
+struct string
+string_split_to(struct string str, u32 to)
 {
     return(string_split(str, 0, to));
 }
 
 s8
-string_compare(string str1, string str2)
+string_compare(struct string str1, struct string str2)
 {
     s8 result = str1.size - str2.size;
 

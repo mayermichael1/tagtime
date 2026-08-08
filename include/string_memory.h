@@ -4,7 +4,7 @@
 #include "memory.h"
 
 const char *
-to_c_string(string str, mem_arena *scratch)
+to_c_string(struct string str, struct mem_arena *scratch)
 {
     u8* cstring = ARENA_PUSH_ARRAY(scratch, u8, (str.size+1));
     for(u32 i = 0; i < str.size; ++i)
@@ -40,10 +40,10 @@ string_copy(string str, mem_arena *scratch)
 */
 
 
-string
-string_append(string str1, string str2, mem_arena *scratch)
+struct string
+string_append(struct string str1, struct string str2, struct mem_arena *scratch)
 {
-    string appended = {};
+    struct string appended = {};
     appended.size = str1.size+str2.size;
     appended.data = ARENA_PUSH_ARRAY(scratch, u8, appended.size);
     for(u32 i = 0; i < str1.size; ++i)

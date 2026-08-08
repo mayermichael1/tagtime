@@ -3,27 +3,26 @@
 
 #include "memory.h"
 
-typedef struct
+struct u64_array
 {
     u64 count;
     u64 *data;
-}
-u64_array;
+};
 
-typedef struct  _string_array
+struct string_array
 {
     u32 count;
-    string *data;
-}
-string_array;
+    struct string *data;
+};
+
 
 /**
  * allocate a new array with incrementing numbers up to count
  */
-u64_array
-create_incrementing_array(mem_arena *memory, u64 count)
+struct u64_array
+create_incrementing_array(struct mem_arena *memory, u64 count)
 {
-    u64_array arr = {.count = count};
+    struct u64_array arr = {.count = count};
     arr.data = ARENA_PUSH_ARRAY(memory, u64, arr.count);
     for(u32 i=0; i<arr.count; ++i)
     {
@@ -36,9 +35,9 @@ create_incrementing_array(mem_arena *memory, u64 count)
  * "remove" a given index from an array be shifting the rest of the array down
  */
 void
-arr_remove_idx(u64_array *arr, u64 idx)
+arr_remove_idx(struct u64_array *arr, u64 idx)
 {
-    u64_array newarr = *arr;
+    struct u64_array newarr = *arr;
     if(idx < newarr.count)
     {
         for(u64 i = idx; i<newarr.count-1; ++i)
@@ -54,9 +53,9 @@ arr_remove_idx(u64_array *arr, u64 idx)
  * remove all elements matching a value from the array
  */
 void
-arr_remove_values(u64_array *arr, u64 element)
+arr_remove_values(struct u64_array *arr, u64 element)
 {
-    u64_array collapsed = *arr;
+    struct u64_array collapsed = *arr;
     u64 i = 0;
     while(i < collapsed.count)
     {
@@ -83,9 +82,9 @@ arr_remove_values(u64_array *arr, u64 element)
 //TODO: currently sets values to 0 which is not needed. change this so it can be 
 //used generally
 void
-intersect_arrays(u64_array *a, u64_array b)
+intersect_arrays(struct u64_array *a, struct u64_array b)
 {
-    u64_array intersect = *a;
+    struct u64_array intersect = *a;
     for(u64 i=0; i<intersect.count; ++i)
     {
         b8 element_found = false;

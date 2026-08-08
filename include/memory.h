@@ -15,22 +15,22 @@
 /// this only works as long as the scratch does not grow itself
 /// the data is not deleted, only the pointer is returned to the previous position
 //TODO: this might be extended for auto growing arenas and heap like implementations if needed
-typedef struct _mem_arena//NOTE: needed for forward declaration in platform layer
+struct mem_arena
 {
     umm start;  
     umm current; 
     umm end; 
-}
-mem_arena;
+};
+
 
 internal umm
-arena_remaining(mem_arena scratch)
+arena_remaining(struct mem_arena scratch)
 {
     return(scratch.end - scratch.current);
 }
 
 internal umm
-arena_size(mem_arena scratch)
+arena_size(struct mem_arena scratch)
 {
     return(scratch.end - scratch.start);
 }
@@ -41,10 +41,10 @@ arena_size(mem_arena scratch)
 ///
 /// @param  size    size for the whole scratch space
 /// @return returns a new mem_arena
-mem_arena 
+struct mem_arena 
 create_mem_arena(umm size)
 {
-    mem_arena scratch = {};
+    struct mem_arena scratch = {};
     scratch.start = allocate(size); // TODO: theoretically allocate could fail
     scratch.end = scratch.start + size;
     scratch.current = scratch.start;
@@ -63,7 +63,7 @@ create_mem_arena(umm size)
 //TODO: maybe create a safe function that zeroes out memory when allocating
 //      currently memory is returned as is 
 umm
-push_mem_arena(mem_arena *scratch, umm size)
+push_mem_arena(struct mem_arena *scratch, umm size)
 {
     ASSERT(arena_remaining(*scratch) >= size);
     umm address = scratch->current;
@@ -80,7 +80,7 @@ push_mem_arena(mem_arena *scratch, umm size)
 ///
 /// @param  mem_arena  scratch space to destroy
 void
-destroy_mem_arena(mem_arena *scratch)
+destroy_mem_arena(struct mem_arena *scratch)
 {
     deallocate(scratch->start, arena_size(*scratch));
     scratch->start = 0;
@@ -103,8 +103,8 @@ destroy_mem_arena(mem_arena *scratch)
  *
  * @return  exact copy of the struct
  */
-mem_arena
-create_scoped_arena(mem_arena arena)
+struct mem_arena
+create_scoped_arena(struct mem_arena arena)
 {
     return(arena);
 }
