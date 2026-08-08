@@ -56,11 +56,10 @@ main(u32 argc, u8** argv)
     // f ... optional filename 
     // c ... timestamp for new time tracking followed by a time
     // n ... for list and sum show all entries
-    //
-    struct bound_u64 monthbound = month_bounds(seconds_since_epoch());
-    printf("%llu to %llu\n", monthbound.lower, monthbound.upper);
-        
-    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:"));
+    // w ... filter entries for given week
+    // m ... filter entries for given month
+
+    cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
     set_platform_arena(create_mem_arena(KB));
     //TODO: most of this is not actually used as a scratch temp memory but as general 
@@ -84,6 +83,8 @@ main(u32 argc, u8** argv)
         printf(" -s sum all times tracked to specified tag(s)\n");
         printf(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
         printf(" -n when no tags are given show all entries\n");
+        printf(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n");
+        printf(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n");
     }
     else
     {
@@ -151,11 +152,18 @@ main(u32 argc, u8** argv)
 
                     struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
 
+                    if(cli_contains(args, 'm'))
+                    {
+                        s64 offset = string_to_s64(cli_get_arg(args, 'm', 0));
+                        filter_timestamp = month_bounds_offset(seconds_since_epoch(), offset);
+                    }
+
                     if(cli_contains(args, 'w'))
                     {
                         s64 week_offset = string_to_s64(cli_get_arg(args, 'w', 0));
                         filter_timestamp = week_bounds_offset(seconds_since_epoch(), week_offset);
                     }
+
 
                     for(u32 i=0; i<linked_entries.count; ++i)
                     {
@@ -182,6 +190,12 @@ main(u32 argc, u8** argv)
             else if(cli_contains(args, 'n'))
             {
                 struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
+
+                if(cli_contains(args, 'm'))
+                {
+                    s64 offset = string_to_s64(cli_get_arg(args, 'm', 0));
+                    filter_timestamp = month_bounds_offset(seconds_since_epoch(), offset);
+                }
 
                 if(cli_contains(args, 'w'))
                 {
