@@ -51,6 +51,15 @@ create_mem_arena(umm size)
     return(scratch);
 }
 
+void 
+internal_mem_set(umm start, umm end)
+{
+    for(umm curr = start; curr < end; ++curr)
+    {
+        ((u8*)0)[curr] = 0;
+    }
+}
+
 
 /// scratch_push
 ///
@@ -67,12 +76,23 @@ push_mem_arena(struct mem_arena *scratch, umm size)
 {
     ASSERT(arena_remaining(*scratch) >= size);
     umm address = scratch->current;
+    //TODO: make this a setting as it may slow down mem allocation
+    internal_mem_set(address, address+size);
     scratch->current += size;
     return(address);
 }
 
 #define ARENA_PUSH_STRUCT(scratch, structname) (structname*)push_mem_arena(scratch, sizeof(structname))
 #define ARENA_PUSH_ARRAY(scratch, structname, entries) (structname*)push_mem_arena(scratch, sizeof(structname) * (entries))
+//NOTE: this directly creates a struct containing first the count and then the array containing the elements
+//TODO: following is allowed in C99
+//      struct arr
+//      {
+//          u32 size;
+//          u8 data[]; // size = 0
+//      }
+//      currently all arrays are not like this. data format in tagtime depends on this :(
+//#define ARENA_PUSH_STRUCT_ARRAY(mem, arraystruct, arrayelement, elementcount) (arraystruct*)push_mem_arena(mem, sizeof(arraystruct) + sizeof(arrayelement) * (elementcount - 1));
 
 /// destroy_mem_arena
 ///
