@@ -60,6 +60,20 @@ pow_u64(u64 value, u32 exponent)
     return(pow);
 }
 
+f64
+floor(f64 value)
+{
+   //TODO: implement 
+   return 0.0;
+}
+
+f64
+fract(f64 value)
+{
+    //TODO: implement
+    return 0.0;
+}
+
 
 
 /// BIT OPERATIONS
