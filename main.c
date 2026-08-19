@@ -12,6 +12,8 @@
 #include "src/linux_platform.c"
 #include "src/time.c"
 
+#include <stdarg.h>
+
 /**
  * receives an array of tags and creates arrays that are not in timedata yet
  *
@@ -45,6 +47,97 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags)
     return(all_tags_created);
 }
 
+void
+test_vargs(u32 count,  ...)
+{
+    va_list args;    
+    va_start(args, count);
+    for(u32 i = 0; i < count; ++i)
+    {
+        printf("%d, ", va_arg(args, u32));
+    }
+    va_end(args);
+    printf("\n");
+}
+
+enum format_type
+{
+    FS_INSERT_PERCENT,
+    FS_CHARACTER,
+    FS_STRING,
+    FS_COUNT,
+};
+struct format_specifier
+{
+    enum format_type type;
+};
+
+struct format_specifier
+string_extract_format_specifier(struct string format, u32 *index)
+{
+    struct format_specifier fs = {}; 
+    // 
+    (*index)++;
+    if(format.size > *index)
+    {
+        switch(format.data[*index])
+        {
+            case '%':
+                fs.type = FS_INSERT_PERCENT; 
+            break;
+            case 'c':
+                fs.type = FS_CHARACTER; 
+            break;
+            case 's':
+                fs.type = FS_STRING;
+            break;
+        }
+        (*index)++;
+    }
+    return(fs);
+}
+
+struct string
+string_format(struct string format, struct mem_arena *mem, ...)
+{
+    va_list args;    
+    va_start(args, mem);
+
+    struct string str = {};
+    str.data = ARENA_PUSH_ARRAY(mem, u8, 1024); //TODO: for now string can be maximum of 1024 characters long change this later
+
+    for(u32 i = 0; i < format.size; ++i)
+    {
+        if(format.data[i] == '%')
+        {
+            struct format_specifier fs = string_extract_format_specifier(format, &i);
+            switch (fs.type)
+            {
+                case FS_INSERT_PERCENT:
+                    str.data[str.size++] = '%';
+                break;
+                case FS_CHARACTER:
+                    u8 character = (u8)va_arg(args, u32);
+                    str.data[str.size++] = character;
+                break;
+                case FS_STRING:
+                    struct string argstr = va_arg(args, struct string);
+                    for(u8* c = argstr.data; c != argstr.data + argstr.size; ++c)
+                    {
+                        str.data[str.size++] = *c;
+                    }
+                break;
+            }
+        }
+        str.data[str.size++] = format.data[i];
+    }
+
+    va_end(args);
+
+
+    return(str);
+}
+
 s32 
 main(u32 argc, u8** argv)
 {
@@ -58,13 +151,24 @@ main(u32 argc, u8** argv)
     // n ... for list and sum show all entries
     // w ... filter entries for given week
     // m ... filter entries for given month
+    //
+    //
 
     struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
     set_platform_arena(create_mem_arena(KB));
+    string_local_temp_mem = create_mem_arena(KB);
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
+
+    printf("printf formatted: %% %c %s\n", 'h', "hello world");
+    struct string str = string_format(create_string("%% %c %s"), &temp_mem, 'h', create_string("hello world"));
+
+    printf("formatted string: %s\n", str.data);
+
+    printf("%s\n", u64_to_string(1234, &temp_mem).data);
+    printf("%s\n", s64_to_string(-1234, &temp_mem).data);
 
     struct string file = {};
 

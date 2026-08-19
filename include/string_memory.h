@@ -3,6 +3,17 @@
 
 #include "memory.h"
 
+global_variable struct mem_arena string_local_temp_mem = {};
+
+struct string
+create_mem_string(u32 size, struct mem_arena *mem)
+{
+    struct string str = {};
+    str.size = size;
+    str.data = ARENA_PUSH_ARRAY(mem, u8, str.size);
+    return(str);
+}
+
 const char *
 to_c_string(struct string str, struct mem_arena *scratch)
 {
@@ -39,6 +50,17 @@ string_copy(string str, mem_arena *scratch)
 }
 */
 
+struct string
+string_invert(struct string str, struct mem_arena *mem)
+{
+    struct string inv = create_mem_string(str.size, mem);
+    for(u32 i = 0; i < str.size; ++i)
+    {
+        inv.data[i]  = str.data[str.size - i - 1];
+    }
+    return(inv);
+}
+
 
 struct string
 string_append(struct string str1, struct string str2, struct mem_arena *scratch)
@@ -55,6 +77,125 @@ string_append(struct string str1, struct string str2, struct mem_arena *scratch)
         appended.data[str1.size+i] = str2.data[i];
     }
     return(appended);
+}
+
+//TODO: implement this using a string builder of sorts
+//NOTE: internally used to convert numbers to strings
+struct string
+internal_u64_to_growable_string_inverted(u64 value, struct mem_arena *mem)
+{
+    struct string str = create_mem_string(512, mem);
+    str.size = 0; // set to 0 for "string builder"
+
+    if(value == 0)
+    {
+        str.size = 1;
+        str.data[0] = '0';
+    }
+    else
+    {
+        while(value != 0)
+        {
+            u8 digit = value % 10;
+            value = value / 10;
+            str.data[str.size++] = digit + '0';
+        }
+    }
+    return(str);
+}
+
+struct string
+s64_to_string(s64 value, struct mem_arena *mem)
+{
+    ASSERT(string_local_temp_mem.start != 0);
+    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+
+    b8 negative = value < 0;
+    if(negative)
+    {
+        value = -value;
+    }
+
+    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+
+    if(negative)
+    {
+        str.data[str.size++] = '-';
+    }
+
+    struct string inv = string_invert(str, mem);
+    
+    return(inv);
+}
+
+struct string 
+s32_to_string(s32 value, struct mem_arena *mem)
+{
+    return(s64_to_string(value, mem));
+}
+
+struct string 
+s16_to_string(s16 value, struct mem_arena *mem)
+{
+    return(s64_to_string(value, mem));
+}
+
+struct string 
+s8_to_string(s8 value, struct mem_arena *mem)
+{
+    return(s64_to_string(value, mem));
+}
+
+struct string
+u64_to_string(u64 value, struct mem_arena *mem)
+{
+    ASSERT(string_local_temp_mem.start != 0);
+    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+    struct string inv = string_invert(str, mem);
+    return(inv);
+}
+
+struct string 
+u32_to_string(u32 value, struct mem_arena *mem)
+{
+    return(u64_to_string(value, mem));
+}
+
+struct string 
+u16_to_string(u16 value, struct mem_arena *mem)
+{
+    return(u64_to_string(value, mem));
+}
+
+struct string 
+u8_to_string(u8 value, struct mem_arena *mem)
+{
+    return(u64_to_string(value, mem));
+}
+
+struct string 
+f64_to_string(f64 value, struct mem_arena *mem)
+{
+    ASSERT(string_local_temp_mem.start != 0);
+    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+
+    b8 negative = value < 0;
+    if(negative)
+    {
+        value = -value;
+    }
+
+    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+
+    if(negative)
+    {
+        str.data[str.size++] = '-';
+    }
+
+    struct string inv = string_invert(str, mem);
+    
+    return(inv);
 }
 
 
