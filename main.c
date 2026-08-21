@@ -169,6 +169,11 @@ main(u32 argc, u8** argv)
 
     printf("%s\n", u64_to_string(1234, &temp_mem).data);
     printf("%s\n", s64_to_string(-1234, &temp_mem).data);
+    printf("%s\n", f64_to_string(0.03,2, &temp_mem).data);
+    printf("%s\n", f64_to_string(0.03,1, &temp_mem).data);
+    printf("%s\n", f64_to_string(1.03,3, &temp_mem).data);
+    printf("%s\n", f64_to_string(-1.123,3, &temp_mem).data);
+    printf("%s\n", f64_to_string(0.000001234,7, &temp_mem).data);
 
     struct string file = {};
 

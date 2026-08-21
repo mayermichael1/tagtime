@@ -2,6 +2,7 @@
 #define STRING_MEMORY_H
 
 #include "memory.h"
+#include "math.h"
 
 global_variable struct mem_arena string_local_temp_mem = {};
 
@@ -175,7 +176,7 @@ u8_to_string(u8 value, struct mem_arena *mem)
 }
 
 struct string 
-f64_to_string(f64 value, struct mem_arena *mem)
+f64_to_string(f64 value, u32 precision, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
     struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
@@ -186,6 +187,8 @@ f64_to_string(f64 value, struct mem_arena *mem)
         value = -value;
     }
 
+    value *= pow_u64(10, precision);
+
     struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
 
     if(negative)
@@ -194,6 +197,44 @@ f64_to_string(f64 value, struct mem_arena *mem)
     }
 
     struct string inv = string_invert(str, mem);
+
+    //insert decimal point
+    if(value != 0)
+    {
+        if(precision >= inv.size) //NOTE: first digit should be 0
+        {
+            u32 offset = precision - inv.size + 2;
+            for(u32 i = 0; i < inv.size; ++i)
+            {
+                inv.data[offset + i] = inv.data[0];
+            }
+            for(u32 i = 0; i < offset; ++i)
+            {
+                inv.data[i] = '0';
+            }
+            inv.data[1] = '.';
+            inv.size += offset;
+        }
+        else
+        {
+            u32 digits_before_decimal = inv.size - precision;
+            inv.size += 1;
+            for(u32 i = inv.size-1; i > digits_before_decimal;--i)
+            {
+                inv.data[i] = inv.data[i-1];
+            }
+            inv.data[digits_before_decimal] = '.';
+        }
+    }
+    else
+    {
+        inv.size += precision + 1;
+        inv.data[1] = '.';
+        for(u32 i = 2; i < inv.size; ++i)
+        {
+            inv.data[i] = '0';
+        }
+    }
     
     return(inv);
 }
