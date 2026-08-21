@@ -239,5 +239,11 @@ f64_to_string(f64 value, u32 precision, struct mem_arena *mem)
     return(inv);
 }
 
+struct string
+f32_to_string(f32 value, u32 precision, struct mem_arena *mem)
+{
+    return(f64_to_string(value, precision, mem));
+}
+
 
 #endif 
