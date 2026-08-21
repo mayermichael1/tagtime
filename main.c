@@ -65,6 +65,9 @@ enum format_type
     FS_INSERT_PERCENT,
     FS_CHARACTER,
     FS_STRING,
+    FS_INTEGER,
+    FS_UNSIGNED_INTEGER,
+    FS_FLOAT,
     FS_COUNT,
 };
 struct format_specifier
@@ -91,6 +94,15 @@ string_extract_format_specifier(struct string format, u32 *index)
             case 's':
                 fs.type = FS_STRING;
             break;
+            case 'f': case 'F':
+                fs.type = FS_FLOAT;
+            break;
+            case 'i': case 'd':
+                fs.type = FS_INTEGER;
+            break;
+            case 'u':
+                fs.type = FS_INTEGER;
+            break;
         }
         (*index)++;
     }
@@ -105,6 +117,8 @@ string_format(struct string format, struct mem_arena *mem, ...)
 
     struct string str = {};
     str.data = ARENA_PUSH_ARRAY(mem, u8, 1024); //TODO: for now string can be maximum of 1024 characters long change this later
+
+    struct mem_arena temp_mem = create_scoped_arena(*mem);
 
     for(u32 i = 0; i < format.size; ++i)
     {
@@ -126,6 +140,39 @@ string_format(struct string format, struct mem_arena *mem, ...)
                     {
                         str.data[str.size++] = *c;
                     }
+                break;
+                case FS_INTEGER:
+                {
+                    s32 value = va_arg(args, s32);
+                    struct string value_str = s32_to_string(value, &temp_mem); 
+                    //TODO: string builder should remove this copy operation
+                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
+                    {
+                        str.data[str.size++] = *c;
+                    }
+                }
+                break;
+                case FS_UNSIGNED_INTEGER:
+                {
+                    u32 value = va_arg(args, u32);
+                    struct string value_str = u32_to_string(value, &temp_mem); 
+                    //TODO: string builder should remove this copy operation
+                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
+                    {
+                        str.data[str.size++] = *c;
+                    }
+                }
+                break;
+                case FS_FLOAT:
+                {
+                    f64 value = va_arg(args, f64);
+                    struct string value_str = f64_to_string(value, 6, &temp_mem); 
+                    //TODO: string builder should remove this copy operation
+                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
+                    {
+                        str.data[str.size++] = *c;
+                    }
+                }
                 break;
             }
         }
@@ -162,18 +209,10 @@ main(u32 argc, u8** argv)
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
-    printf("printf formatted: %% %c %s\n", 'h', "hello world");
-    struct string str = string_format(create_string("%% %c %s"), &temp_mem, 'h', create_string("hello world"));
+    printf("printf formatted: %% %c %s %i %u %f \n", 'h', "hello world", -1234, 1234, 12.4);
+    struct string str = string_format(create_string("%% %c %s %i %u %f"), &temp_mem, 'h', create_string("hello world"), -1234, 1234, 12.4);
 
     printf("formatted string: %s\n", str.data);
-
-    printf("%s\n", u64_to_string(1234, &temp_mem).data);
-    printf("%s\n", s64_to_string(-1234, &temp_mem).data);
-    printf("%s\n", f64_to_string(0.03,2, &temp_mem).data);
-    printf("%s\n", f64_to_string(0.03,1, &temp_mem).data);
-    printf("%s\n", f64_to_string(1.03,3, &temp_mem).data);
-    printf("%s\n", f64_to_string(-1.123,3, &temp_mem).data);
-    printf("%s\n", f32_to_string(0.000001234,7, &temp_mem).data);
 
     struct string file = {};
 
