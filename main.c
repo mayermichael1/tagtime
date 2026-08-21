@@ -60,7 +60,14 @@ test_vargs(u32 count,  ...)
     printf("\n");
 }
 
-enum format_type
+enum fs_align_flag
+{
+    FS_LEFT_JUSTIFY = 0b0001,
+    FS_SIGN         = 0b0010,
+    FS_ZERO_LEAD    = 0b0100,
+};
+
+enum fs_format_type
 {
     FS_INSERT_PERCENT,
     FS_CHARACTER,
@@ -72,15 +79,71 @@ enum format_type
 };
 struct format_specifier
 {
-    enum format_type type;
+    u32 width;
+    u32 precision;
+    enum fs_align_flag align;
+    enum fs_format_type type;
 };
 
 struct format_specifier
 string_extract_format_specifier(struct string format, u32 *index)
 {
     struct format_specifier fs = {}; 
-    // 
+    // get alignment flags etc
+    b8 alignment_flag_found = true;
+
+    // skip percent sign
     (*index)++;
+
+    // extract all align specifiers
+    for(;format.size > *index & alignment_flag_found;)
+    {
+        alignment_flag_found = false;
+        switch (format.data[*index])
+        {
+            case '+':
+                fs.align |= FS_SIGN;
+                alignment_flag_found = true;
+            break;
+            case '-':
+                fs.align |= FS_LEFT_JUSTIFY;
+                alignment_flag_found = true;
+            break;
+            case '0':
+                fs.align |= FS_ZERO_LEAD;
+                alignment_flag_found = true;
+            break;
+        }
+
+        if(alignment_flag_found)
+        {
+            (*index)++;
+        }
+    }
+
+    // extract widht string
+    struct string widthstr = {};
+    widthstr.data = &format.data[*index];
+    for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
+    {
+        widthstr.size++;
+    }
+    fs.width = string_to_u64(widthstr);
+
+    // extract precision
+    if(format.data[*index] == '.')
+    {
+        (*index)++;
+        struct string precision_str = {};
+        precision_str.data = &format.data[*index];
+        for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
+        {
+            precision_str.size++;
+        }
+        fs.precision = string_to_u64(precision_str);
+    }
+
+    // get type of argument
     if(format.size > *index)
     {
         switch(format.data[*index])
@@ -96,6 +159,10 @@ string_extract_format_specifier(struct string format, u32 *index)
             break;
             case 'f': case 'F':
                 fs.type = FS_FLOAT;
+                if(fs.precision == 0)
+                {
+                    fs.precision = 6;
+                }
             break;
             case 'i': case 'd':
                 fs.type = FS_INTEGER;
@@ -125,55 +192,60 @@ string_format(struct string format, struct mem_arena *mem, ...)
         if(format.data[i] == '%')
         {
             struct format_specifier fs = string_extract_format_specifier(format, &i);
+            struct string to_insert = {};
             switch (fs.type)
             {
                 case FS_INSERT_PERCENT:
-                    str.data[str.size++] = '%';
+                    to_insert = char_to_string('%', &temp_mem);
                 break;
                 case FS_CHARACTER:
                     u8 character = (u8)va_arg(args, u32);
-                    str.data[str.size++] = character;
+                    to_insert = char_to_string(character, &temp_mem);
                 break;
                 case FS_STRING:
-                    struct string argstr = va_arg(args, struct string);
-                    for(u8* c = argstr.data; c != argstr.data + argstr.size; ++c)
-                    {
-                        str.data[str.size++] = *c;
-                    }
+                    to_insert = va_arg(args, struct string);
                 break;
                 case FS_INTEGER:
                 {
                     s32 value = va_arg(args, s32);
-                    struct string value_str = s32_to_string(value, &temp_mem); 
-                    //TODO: string builder should remove this copy operation
-                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
-                    {
-                        str.data[str.size++] = *c;
-                    }
+                    to_insert = s32_to_string(value, &temp_mem); 
                 }
                 break;
                 case FS_UNSIGNED_INTEGER:
                 {
                     u32 value = va_arg(args, u32);
-                    struct string value_str = u32_to_string(value, &temp_mem); 
-                    //TODO: string builder should remove this copy operation
-                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
-                    {
-                        str.data[str.size++] = *c;
-                    }
+                    to_insert = u32_to_string(value, &temp_mem); 
                 }
                 break;
                 case FS_FLOAT:
                 {
                     f64 value = va_arg(args, f64);
-                    struct string value_str = f64_to_string(value, 6, &temp_mem); 
-                    //TODO: string builder should remove this copy operation
-                    for(u8 *c = value_str.data; c != value_str.data + value_str.size; ++c)
-                    {
-                        str.data[str.size++] = *c;
-                    }
+                    to_insert = f64_to_string(value, fs.precision, &temp_mem); 
                 }
                 break;
+            }
+
+            // pad to width
+            if(!MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
+            {
+                for(u32 i = 0; i < fs.width - to_insert.size; ++i)
+                {
+                    str.data[str.size++] = ' ';
+                }
+            }
+
+            for(u8* c = to_insert.data; c != to_insert.data + to_insert.size; ++c)
+            {
+                str.data[str.size++] = *c;
+            }
+
+            // pad to width left
+            if(MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
+            {
+                for(u32 i = 0; i < fs.width - to_insert.size; ++i)
+                {
+                    str.data[str.size++] = ' ';
+                }
             }
         }
         str.data[str.size++] = format.data[i];
@@ -209,10 +281,11 @@ main(u32 argc, u8** argv)
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
-    printf("printf formatted: %% %c %s %i %u %f \n", 'h', "hello world", -1234, 1234, 12.4);
-    struct string str = string_format(create_string("%% %c %s %i %u %f"), &temp_mem, 'h', create_string("hello world"), -1234, 1234, 12.4);
+#define FORSTR "%% %+-0c %s %i %u %-10.2fh \n"
+    printf(FORSTR, 'h', "hello world", -1234, 1234, 12.4);
+    struct string str = string_format(create_string(FORSTR), &temp_mem, 'h', create_string("hello world"), -1234, 1234, 12.4);
 
-    printf("formatted string: %s\n", str.data);
+    printf("%s", str.data);
 
     struct string file = {};
 

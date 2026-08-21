@@ -245,5 +245,15 @@ f32_to_string(f32 value, u32 precision, struct mem_arena *mem)
     return(f64_to_string(value, precision, mem));
 }
 
+struct string
+char_to_string(u8 value, struct mem_arena *mem)
+{
+    struct string charstr = {};
+    charstr.size = 1;
+    charstr.data = ARENA_PUSH_ARRAY(mem, u8, 1);
+    charstr.data[0] = value;
+    return(charstr);
+}
+
 
 #endif 

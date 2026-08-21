@@ -5,8 +5,7 @@ struct string
 {
     u32 size; //NOTE: this needs to be first for serialization
     u8 *data;
-}
-;
+};
 
 struct string
 create_string(const char* value)
