@@ -13,6 +13,7 @@ Tasks can be tagged with various tags so they can be queried by them later.
       idea: only print a string
       create formatting for the string class so it can be used for other things
       as well
+- [ ] create a string builder like construct for functions like string_format
 - [ ] further related tags when querying entries
 - [ ] sort tags by last used, etc...
 
