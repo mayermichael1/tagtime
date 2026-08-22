@@ -65,6 +65,8 @@ enum fs_align_flag
     FS_LEFT_JUSTIFY = 0b0001,
     FS_SIGN         = 0b0010,
     FS_ZERO_LEAD    = 0b0100,
+    FS_ALL          = 0b1111,
+    FS_NONE         = 0b0000,
 };
 
 enum fs_format_type
@@ -121,7 +123,7 @@ string_extract_format_specifier(struct string format, u32 *index)
         }
     }
 
-    // extract widht string
+    // extract width string
     struct string widthstr = {};
     widthstr.data = &format.data[*index];
     for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
@@ -153,9 +155,14 @@ string_extract_format_specifier(struct string format, u32 *index)
             break;
             case 'c':
                 fs.type = FS_CHARACTER; 
+                fs.precision = 0;
+                fs.align &= ~FS_SIGN;
+                fs.align &= ~FS_ZERO_LEAD;
             break;
             case 's':
                 fs.type = FS_STRING;
+                fs.align &= ~FS_SIGN;
+                fs.align &= ~FS_ZERO_LEAD;
             break;
             case 'f': case 'F':
                 fs.type = FS_FLOAT;
@@ -193,6 +200,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
         {
             struct format_specifier fs = string_extract_format_specifier(format, &i);
             struct string to_insert = {};
+            b8 negative = false;
             switch (fs.type)
             {
                 case FS_INSERT_PERCENT:
@@ -208,6 +216,11 @@ string_format(struct string format, struct mem_arena *mem, ...)
                 case FS_INTEGER:
                 {
                     s32 value = va_arg(args, s32);
+                    if(value<0)
+                    {
+                        value = -value;
+                        negative = true;
+                    }
                     to_insert = s32_to_string(value, &temp_mem); 
                 }
                 break;
@@ -220,21 +233,70 @@ string_format(struct string format, struct mem_arena *mem, ...)
                 case FS_FLOAT:
                 {
                     f64 value = va_arg(args, f64);
+                    if(value<0)
+                    {
+                        value = -value;
+                        negative = true;
+                    }
                     to_insert = f64_to_string(value, fs.precision, &temp_mem); 
                 }
                 break;
             }
 
             // pad to width
+            //
+            if(MASK(fs.align, FS_ZERO_LEAD))
+            {
+                if(negative)
+                {
+                    str.data[str.size++] = '-';
+                }
+                else if(MASK(fs.align, FS_SIGN))
+                {
+                    str.data[str.size++] = '+';
+                }
+            }
             if(!MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
             {
-                for(u32 i = 0; i < fs.width - to_insert.size; ++i)
+                u8 padding_char = ' ';
+                if(MASK(fs.align, FS_ZERO_LEAD))
                 {
-                    str.data[str.size++] = ' ';
+                    padding_char = '0';
+                }
+
+                u32 pad_size = fs.width - to_insert.size;
+                if(to_insert.size > fs.width)
+                {
+                    pad_size = 0;
+                }
+                if(fs.type == FS_STRING && fs.precision != 0)
+                {
+                    pad_size = fs.width - fs.precision;
+                }
+                for(u32 i = 0; i < pad_size; ++i)
+                {
+                    str.data[str.size++] = padding_char;
+                }
+            }
+            if(!MASK(fs.align, FS_ZERO_LEAD))
+            {
+                if(negative)
+                {
+                    str.data[str.size++] = '-';
+                }
+                else if(MASK(fs.align, FS_SIGN))
+                {
+                    str.data[str.size++] = '+';
                 }
             }
 
-            for(u8* c = to_insert.data; c != to_insert.data + to_insert.size; ++c)
+            // print the actual string
+            u32 write_count = to_insert.size;
+            if(fs.type == FS_STRING && fs.precision != 0)
+            {
+                write_count = MIN(to_insert.size, fs.precision);
+            }
+            for(u8* c = to_insert.data; c != to_insert.data + write_count; ++c)
             {
                 str.data[str.size++] = *c;
             }
@@ -242,7 +304,16 @@ string_format(struct string format, struct mem_arena *mem, ...)
             // pad to width left
             if(MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
             {
-                for(u32 i = 0; i < fs.width - to_insert.size; ++i)
+                u32 pad_size = fs.width - to_insert.size;
+                if(to_insert.size > fs.width)
+                {
+                    pad_size = 0;
+                }
+                if(fs.type == FS_STRING && fs.precision != 0)
+                {
+                    pad_size = fs.width - fs.precision;
+                }
+                for(u32 i = 0; i < pad_size; ++i)
                 {
                     str.data[str.size++] = ' ';
                 }
@@ -281,9 +352,9 @@ main(u32 argc, u8** argv)
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
-#define FORSTR "%% %+-0c %s %i %u %-10.2fh \n"
-    printf(FORSTR, 'h', "hello world", -1234, 1234, 12.4);
-    struct string str = string_format(create_string(FORSTR), &temp_mem, 'h', create_string("hello world"), -1234, 1234, 12.4);
+#define FORSTR "%% %+-04c %-10.3s %i %u %010.2fh \n"
+    printf(FORSTR, 'h', "hello world", -1234, 1234, -12.4);
+    struct string str = string_format(create_string(FORSTR), &temp_mem, 'h', create_string("hello world"), -1234, 1234, -12.4);
 
     printf("%s", str.data);
 
