@@ -27,7 +27,7 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
     b8 all_tags_created = true;
     if(contains_uncreated_tags(tags))
     {
-        write_stdout(create_string("Uncreated tags found.\n")); 
+        write_stdout_cstring("Uncreated tags found.\n"); 
         for(u32 i = 0; all_tags_created && i < tags.count; i++)
         {
             if(tags.ids[i] == 0)
@@ -60,6 +60,7 @@ main(u32 argc, u8** argv)
     // m ... filter entries for given month
     //
     //
+    //
 
     struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
@@ -73,21 +74,21 @@ main(u32 argc, u8** argv)
 
     if(cli_contains(args, 'h'))
     {
-        write_stdout(create_string("tagtime usage:\n"));
-        write_stdout(create_string(" -h ... show this help page\n"));
-        write_stdout(create_string(" -c time ... create new entry (requires tag(s))\n"));
-        write_stdout(create_string("\t time formats: \n"));
-        write_stdout(create_string("\t -c HH:mm\n"));
-        write_stdout(create_string("\t -c minutes\n"));
-        write_stdout(create_string("\t -c H,Hfract \n"));
-        write_stdout(create_string("\t -c H.Hfract \n"));
-        write_stdout(create_string(" -a add new tags to the system\n"));
-        write_stdout(create_string(" -l list all times tracked to specified tag(s)\n"));
-        write_stdout(create_string(" -s sum all times tracked to specified tag(s)\n"));
-        write_stdout(create_string(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n"));
-        write_stdout(create_string(" -n when no tags are given show all entries\n"));
-        write_stdout(create_string(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n"));
-        write_stdout(create_string(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n"));
+        write_stdout_cstring("tagtime usage:\n");
+        write_stdout_cstring(" -h ... show this help page\n");
+        write_stdout_cstring(" -c time ... create new entry (requires tag(s))\n");
+        write_stdout_cstring("\t time formats: \n");
+        write_stdout_cstring("\t -c HH:mm\n");
+        write_stdout_cstring("\t -c minutes\n");
+        write_stdout_cstring("\t -c H,Hfract \n");
+        write_stdout_cstring("\t -c H.Hfract \n");
+        write_stdout_cstring(" -a add new tags to the system\n");
+        write_stdout_cstring(" -l list all times tracked to specified tag(s)\n");
+        write_stdout_cstring(" -s sum all times tracked to specified tag(s)\n");
+        write_stdout_cstring(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
+        write_stdout_cstring(" -n when no tags are given show all entries\n");
+        write_stdout_cstring(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n");
+        write_stdout_cstring(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n");
     }
     else
     {
@@ -117,19 +118,19 @@ main(u32 argc, u8** argv)
                 }
                 else
                 {
-                    write_stdout(create_string("not all tags have been created. entry was not inserted.\n"));
+                    write_stdout_cstring("not all tags have been created. entry was not inserted.\n");
                 }
             }
             else
             {
-                write_stdout(create_string("Time needs to have at least one tag \n"));
+                write_stdout_cstring("Time needs to have at least one tag \n");
             }
         }
         else if(cli_contains(args, 's') || cli_contains(args, 'l'))
         {
             if(!cli_contains(args, 't') && !cli_contains(args, 'n'))
             {
-                write_stdout(create_string("List of available tags: \n"));
+                write_stdout_cstring("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
                     struct mem_arena temp = create_scoped_arena(temp_mem);
@@ -144,7 +145,7 @@ main(u32 argc, u8** argv)
                 //TODO: dynamically create tags if they do not exist -a should be pointless then
                 if(contains_uncreated_tags(tags))
                 { 
-                    write_stdout(create_string("Not all provided tags exist \n"));
+                    write_stdout_cstring("Not all provided tags exist \n");
                 }
                 else
                 {

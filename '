@@ -32,7 +32,7 @@ write_stdout(struct string value)
 void
 write_stdout_cstring(const char *value)
 {
-    for(u8 *c = (u8*)value; *c != 0; ++c)
+    for(u8 *c = value; *c != 0; ++c)
     {
         write(STDOUT_FILENO, c, 1);
     }

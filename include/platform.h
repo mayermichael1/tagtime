@@ -60,6 +60,9 @@ read_u8_stdin();
 void
 write_stdout(struct string value);
 
+void
+write_stdout_cstring(const char *value);
+
 ///==========================================================================///
 ///                             CLI ARGUMENTS HADNLING                       ///
 ///==========================================================================///
