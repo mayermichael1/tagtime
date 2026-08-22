@@ -23,6 +23,12 @@ flush_stdin(){
     while(read_bytes != -1);
 }
 
+void
+write_stdout(struct string value)
+{
+    write(STDOUT_FILENO, value.data, value.size);
+}
+
 u8
 read_u8_stdin(){
     u8 character = 0;

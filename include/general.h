@@ -40,4 +40,6 @@ typedef s64         smm;
 
 #define CSTRING_CAST(value) (const char*)value
 
+#define NULL 0
+
 #endif 

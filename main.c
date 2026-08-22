@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "include/general.h"
 #include "include/platform.h"
 #include "include/memory.h"
@@ -12,7 +10,7 @@
 #include "src/linux_platform.c"
 #include "src/time.c"
 
-#include <stdarg.h>
+#include "stdio.h"
 
 /**
  * receives an array of tags and creates arrays that are not in timedata yet
@@ -24,17 +22,17 @@
  *          have been created
  */
 b8
-create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags)
+create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, struct mem_arena *mem)
 {
     b8 all_tags_created = true;
     if(contains_uncreated_tags(tags))
     {
-        printf("Uncreated tags found.\n"); 
+        write_stdout(create_string("Uncreated tags found.\n")); 
         for(u32 i = 0; all_tags_created && i < tags.count; i++)
         {
             if(tags.ids[i] == 0)
             {
-                printf("Create tag \"%s\"? (y/n) : ", tags.tags[i].data);
+                write_stdout(string_format(create_string("Create tag \"%s\"? (y/n) : "),mem, tags.tags[i]));
                 fflush(stdout);
                 all_tags_created = read_u8_stdin() == 'y';
                 if(all_tags_created)
@@ -45,287 +43,6 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags)
         }
     }
     return(all_tags_created);
-}
-
-void
-test_vargs(u32 count,  ...)
-{
-    va_list args;    
-    va_start(args, count);
-    for(u32 i = 0; i < count; ++i)
-    {
-        printf("%d, ", va_arg(args, u32));
-    }
-    va_end(args);
-    printf("\n");
-}
-
-enum fs_align_flag
-{
-    FS_LEFT_JUSTIFY = 0b0001,
-    FS_SIGN         = 0b0010,
-    FS_ZERO_LEAD    = 0b0100,
-    FS_ALL          = 0b1111,
-    FS_NONE         = 0b0000,
-};
-
-enum fs_format_type
-{
-    FS_INSERT_PERCENT,
-    FS_CHARACTER,
-    FS_STRING,
-    FS_INTEGER,
-    FS_UNSIGNED_INTEGER,
-    FS_FLOAT,
-    FS_COUNT,
-};
-struct format_specifier
-{
-    u32 width;
-    u32 precision;
-    enum fs_align_flag align;
-    enum fs_format_type type;
-};
-
-struct format_specifier
-string_extract_format_specifier(struct string format, u32 *index)
-{
-    struct format_specifier fs = {}; 
-    // get alignment flags etc
-    b8 alignment_flag_found = true;
-
-    // skip percent sign
-    (*index)++;
-
-    // extract all align specifiers
-    for(;format.size > *index & alignment_flag_found;)
-    {
-        alignment_flag_found = false;
-        switch (format.data[*index])
-        {
-            case '+':
-                fs.align |= FS_SIGN;
-                alignment_flag_found = true;
-            break;
-            case '-':
-                fs.align |= FS_LEFT_JUSTIFY;
-                alignment_flag_found = true;
-            break;
-            case '0':
-                fs.align |= FS_ZERO_LEAD;
-                alignment_flag_found = true;
-            break;
-        }
-
-        if(alignment_flag_found)
-        {
-            (*index)++;
-        }
-    }
-
-    // extract width string
-    struct string widthstr = {};
-    widthstr.data = &format.data[*index];
-    for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
-    {
-        widthstr.size++;
-    }
-    fs.width = string_to_u64(widthstr);
-
-    // extract precision
-    if(format.data[*index] == '.')
-    {
-        (*index)++;
-        struct string precision_str = {};
-        precision_str.data = &format.data[*index];
-        for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
-        {
-            precision_str.size++;
-        }
-        fs.precision = string_to_u64(precision_str);
-    }
-
-    // get type of argument
-    if(format.size > *index)
-    {
-        switch(format.data[*index])
-        {
-            case '%':
-                fs.type = FS_INSERT_PERCENT; 
-            break;
-            case 'c':
-                fs.type = FS_CHARACTER; 
-                fs.precision = 0;
-                fs.align &= ~FS_SIGN;
-                fs.align &= ~FS_ZERO_LEAD;
-            break;
-            case 's':
-                fs.type = FS_STRING;
-                fs.align &= ~FS_SIGN;
-                fs.align &= ~FS_ZERO_LEAD;
-            break;
-            case 'f': case 'F':
-                fs.type = FS_FLOAT;
-                if(fs.precision == 0)
-                {
-                    fs.precision = 6;
-                }
-            break;
-            case 'i': case 'd':
-                fs.type = FS_INTEGER;
-            break;
-            case 'u':
-                fs.type = FS_INTEGER;
-            break;
-        }
-        (*index)++;
-    }
-    return(fs);
-}
-
-struct string
-string_format(struct string format, struct mem_arena *mem, ...)
-{
-    va_list args;    
-    va_start(args, mem);
-
-    struct string str = {};
-    str.data = ARENA_PUSH_ARRAY(mem, u8, 1024); //TODO: for now string can be maximum of 1024 characters long change this later
-
-    struct mem_arena temp_mem = create_scoped_arena(*mem);
-
-    for(u32 i = 0; i < format.size; ++i)
-    {
-        if(format.data[i] == '%')
-        {
-            struct format_specifier fs = string_extract_format_specifier(format, &i);
-            struct string to_insert = {};
-            b8 negative = false;
-            switch (fs.type)
-            {
-                case FS_INSERT_PERCENT:
-                    to_insert = char_to_string('%', &temp_mem);
-                break;
-                case FS_CHARACTER:
-                    u8 character = (u8)va_arg(args, u32);
-                    to_insert = char_to_string(character, &temp_mem);
-                break;
-                case FS_STRING:
-                    to_insert = va_arg(args, struct string);
-                break;
-                case FS_INTEGER:
-                {
-                    s32 value = va_arg(args, s32);
-                    if(value<0)
-                    {
-                        value = -value;
-                        negative = true;
-                    }
-                    to_insert = s32_to_string(value, &temp_mem); 
-                }
-                break;
-                case FS_UNSIGNED_INTEGER:
-                {
-                    u32 value = va_arg(args, u32);
-                    to_insert = u32_to_string(value, &temp_mem); 
-                }
-                break;
-                case FS_FLOAT:
-                {
-                    f64 value = va_arg(args, f64);
-                    if(value<0)
-                    {
-                        value = -value;
-                        negative = true;
-                    }
-                    to_insert = f64_to_string(value, fs.precision, &temp_mem); 
-                }
-                break;
-            }
-
-            // pad to width
-            //
-            if(MASK(fs.align, FS_ZERO_LEAD))
-            {
-                if(negative)
-                {
-                    str.data[str.size++] = '-';
-                }
-                else if(MASK(fs.align, FS_SIGN))
-                {
-                    str.data[str.size++] = '+';
-                }
-            }
-            if(!MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
-            {
-                u8 padding_char = ' ';
-                if(MASK(fs.align, FS_ZERO_LEAD))
-                {
-                    padding_char = '0';
-                }
-
-                u32 pad_size = fs.width - to_insert.size;
-                if(to_insert.size > fs.width)
-                {
-                    pad_size = 0;
-                }
-                if(fs.type == FS_STRING && fs.precision != 0)
-                {
-                    pad_size = fs.width - fs.precision;
-                }
-                for(u32 i = 0; i < pad_size; ++i)
-                {
-                    str.data[str.size++] = padding_char;
-                }
-            }
-            if(!MASK(fs.align, FS_ZERO_LEAD))
-            {
-                if(negative)
-                {
-                    str.data[str.size++] = '-';
-                }
-                else if(MASK(fs.align, FS_SIGN))
-                {
-                    str.data[str.size++] = '+';
-                }
-            }
-
-            // print the actual string
-            u32 write_count = to_insert.size;
-            if(fs.type == FS_STRING && fs.precision != 0)
-            {
-                write_count = MIN(to_insert.size, fs.precision);
-            }
-            for(u8* c = to_insert.data; c != to_insert.data + write_count; ++c)
-            {
-                str.data[str.size++] = *c;
-            }
-
-            // pad to width left
-            if(MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
-            {
-                u32 pad_size = fs.width - to_insert.size;
-                if(to_insert.size > fs.width)
-                {
-                    pad_size = 0;
-                }
-                if(fs.type == FS_STRING && fs.precision != 0)
-                {
-                    pad_size = fs.width - fs.precision;
-                }
-                for(u32 i = 0; i < pad_size; ++i)
-                {
-                    str.data[str.size++] = ' ';
-                }
-            }
-        }
-        str.data[str.size++] = format.data[i];
-    }
-
-    va_end(args);
-
-
-    return(str);
 }
 
 s32 
@@ -352,31 +69,25 @@ main(u32 argc, u8** argv)
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
-#define FORSTR "%% %+-04c %-10.3s %i %u %010.2fh \n"
-    printf(FORSTR, 'h', "hello world", -1234, 1234, -12.4);
-    struct string str = string_format(create_string(FORSTR), &temp_mem, 'h', create_string("hello world"), -1234, 1234, -12.4);
-
-    printf("%s", str.data);
-
     struct string file = {};
 
     if(cli_contains(args, 'h'))
     {
-        printf("tagtime usage:\n");
-        printf(" -h ... show this help page\n");
-        printf(" -c time ... create new entry (requires tag(s))\n");
-        printf("\t time formats: \n");
-        printf("\t -c HH:mm\n");
-        printf("\t -c minutes\n");
-        printf("\t -c H,Hfract \n");
-        printf("\t -c H.Hfract \n");
-        printf(" -a add new tags to the system\n");
-        printf(" -l list all times tracked to specified tag(s)\n");
-        printf(" -s sum all times tracked to specified tag(s)\n");
-        printf(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
-        printf(" -n when no tags are given show all entries\n");
-        printf(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n");
-        printf(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n");
+        write_stdout(create_string("tagtime usage:\n"));
+        write_stdout(create_string(" -h ... show this help page\n"));
+        write_stdout(create_string(" -c time ... create new entry (requires tag(s))\n"));
+        write_stdout(create_string("\t time formats: \n"));
+        write_stdout(create_string("\t -c HH:mm\n"));
+        write_stdout(create_string("\t -c minutes\n"));
+        write_stdout(create_string("\t -c H,Hfract \n"));
+        write_stdout(create_string("\t -c H.Hfract \n"));
+        write_stdout(create_string(" -a add new tags to the system\n"));
+        write_stdout(create_string(" -l list all times tracked to specified tag(s)\n"));
+        write_stdout(create_string(" -s sum all times tracked to specified tag(s)\n"));
+        write_stdout(create_string(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n"));
+        write_stdout(create_string(" -n when no tags are given show all entries\n"));
+        write_stdout(create_string(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n"));
+        write_stdout(create_string(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n"));
     }
     else
     {
@@ -398,7 +109,7 @@ main(u32 argc, u8** argv)
             struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
-                if(create_uncreated_tags_assistant(&data, tags))
+                if(create_uncreated_tags_assistant(&data, tags, &temp))
                 {
                     u64 duration = string_to_minutes(time_string);
                     u64 entry_id = insert_time_entry(&data, create_entry(duration));
@@ -406,23 +117,23 @@ main(u32 argc, u8** argv)
                 }
                 else
                 {
-                    printf("not all tags have been created. entry was not inserted.\n");
+                    write_stdout(create_string("not all tags have been created. entry was not inserted.\n"));
                 }
             }
             else
             {
-                printf("Time needs to have at least one tag \n");
+                write_stdout(create_string("Time needs to have at least one tag \n"));
             }
         }
         else if(cli_contains(args, 's') || cli_contains(args, 'l'))
         {
             if(!cli_contains(args, 't') && !cli_contains(args, 'n'))
             {
-                printf("List of available tags: \n");
+                write_stdout(create_string("List of available tags: \n"));
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
                     struct mem_arena temp = create_scoped_arena(temp_mem);
-                    printf(" - %s\n", to_c_string(data.data.tags[i], &temp));
+                    write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
                 }
             }
             else if(cli_option_count(args, 't') != 0)
@@ -433,13 +144,12 @@ main(u32 argc, u8** argv)
                 //TODO: dynamically create tags if they do not exist -a should be pointless then
                 if(contains_uncreated_tags(tags))
                 { 
-                    printf("Not all provided tags exist \n");
+                    write_stdout(create_string("Not all provided tags exist \n"));
                 }
                 else
                 {
                     //TODO: basically the same happens in the -n options 
                     //      maybe pull out this code in some way 
-                    umm before = temp.current; //TODO: for assertation may be removed
                     struct u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
 
                     u64 sum_minutes = 0;
@@ -469,16 +179,15 @@ main(u32 argc, u8** argv)
                             if(cli_contains(args, 'l'))
                             {
                                 struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                                printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                                write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                             }
                         }
                     }
                     if(cli_contains(args, 's'))
                     {
                         struct duration_minutes time = minute_to_time(sum_minutes);
-                        printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
+                        write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                     }
-                    ASSERT(temp.current == (before + data.header.entry_count * sizeof(u64)));
                 }
             }
             else if(cli_contains(args, 'n'))
@@ -507,14 +216,16 @@ main(u32 argc, u8** argv)
                         if(cli_contains(args, 'l'))
                         {
                             struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                            printf("%d;%04d.%02d.%02d %02d:%02d:%02d;%lu\n",i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
+                            struct mem_arena temp = create_scoped_arena(temp_mem);
+                            write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                         }
                     }
                 }
                 if(cli_contains(args, 's'))
                 {
                     struct duration_minutes time = minute_to_time(sum_minutes);
-                    printf("Total of %lu minutes, which are %lud %luh %lum\n", time.sum_minutes, time.days, time.hours, time.minutes);
+                    struct mem_arena temp = create_scoped_arena(temp_mem);
+                    write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                 }
             }
         }
@@ -522,7 +233,7 @@ main(u32 argc, u8** argv)
         {
             struct mem_arena temp = create_scoped_arena(temp_mem);
             struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
-            create_uncreated_tags_assistant(&data, tags);
+            create_uncreated_tags_assistant(&data, tags, &temp);
         }
 
         data_to_file(file, data, temp_mem);

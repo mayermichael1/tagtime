@@ -3,6 +3,7 @@
 
 #include "memory.h"
 #include "math.h"
+#include "stdarg.h"
 
 global_variable struct mem_arena string_local_temp_mem = {};
 
@@ -253,6 +254,278 @@ char_to_string(u8 value, struct mem_arena *mem)
     charstr.data = ARENA_PUSH_ARRAY(mem, u8, 1);
     charstr.data[0] = value;
     return(charstr);
+}
+
+/// 
+/// STRING FORMAT
+///
+
+enum fs_align_flag
+{
+    FS_LEFT_JUSTIFY = 0b0001,
+    FS_SIGN         = 0b0010,
+    FS_ZERO_LEAD    = 0b0100,
+    FS_ALL          = 0b1111,
+    FS_NONE         = 0b0000,
+};
+
+enum fs_format_type
+{
+    FS_INSERT_PERCENT,
+    FS_CHARACTER,
+    FS_STRING,
+    FS_INTEGER,
+    FS_UNSIGNED_INTEGER,
+    FS_FLOAT,
+    FS_COUNT,
+};
+struct format_specifier
+{
+    u32 width;
+    u32 precision;
+    enum fs_align_flag align;
+    enum fs_format_type type;
+};
+
+struct format_specifier
+string_extract_format_specifier(struct string format, u32 *index)
+{
+    struct format_specifier fs = {}; 
+    // get alignment flags etc
+    b8 alignment_flag_found = true;
+
+    // skip percent sign
+    (*index)++;
+
+    // extract all align specifiers
+    for(;format.size > *index & alignment_flag_found;)
+    {
+        alignment_flag_found = false;
+        switch (format.data[*index])
+        {
+            case '+':
+                fs.align |= FS_SIGN;
+                alignment_flag_found = true;
+            break;
+            case '-':
+                fs.align |= FS_LEFT_JUSTIFY;
+                alignment_flag_found = true;
+            break;
+            case '0':
+                fs.align |= FS_ZERO_LEAD;
+                alignment_flag_found = true;
+            break;
+        }
+
+        if(alignment_flag_found)
+        {
+            (*index)++;
+        }
+    }
+
+    // extract width string
+    struct string widthstr = {};
+    widthstr.data = &format.data[*index];
+    for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
+    {
+        widthstr.size++;
+    }
+    fs.width = string_to_u64(widthstr);
+
+    // extract precision
+    if(format.data[*index] == '.')
+    {
+        (*index)++;
+        struct string precision_str = {};
+        precision_str.data = &format.data[*index];
+        for(;format.size > *index && in_bound_u64_inclusive(format.data[*index], (struct bound_u64){'0', '9'});(*index)++)
+        {
+            precision_str.size++;
+        }
+        fs.precision = string_to_u64(precision_str);
+    }
+
+    // get type of argument
+    if(format.size > *index)
+    {
+        switch(format.data[*index])
+        {
+            case '%':
+                fs.type = FS_INSERT_PERCENT; 
+            break;
+            case 'c':
+                fs.type = FS_CHARACTER; 
+                fs.precision = 0;
+                fs.align &= ~FS_SIGN;
+                fs.align &= ~FS_ZERO_LEAD;
+            break;
+            case 's':
+                fs.type = FS_STRING;
+                fs.align &= ~FS_SIGN;
+                fs.align &= ~FS_ZERO_LEAD;
+            break;
+            case 'f': case 'F':
+                fs.type = FS_FLOAT;
+                if(fs.precision == 0)
+                {
+                    fs.precision = 6;
+                }
+            break;
+            case 'i': case 'd':
+                fs.type = FS_INTEGER;
+            break;
+            case 'u':
+                fs.type = FS_INTEGER;
+            break;
+        }
+        (*index)++;
+    }
+    return(fs);
+}
+
+struct string
+string_format(struct string format, struct mem_arena *mem, ...)
+{
+    va_list args;    
+    va_start(args, mem);
+
+    struct string str = {};
+    str.data = ARENA_PUSH_ARRAY(mem, u8, 1024); //TODO: for now string can be maximum of 1024 characters long change this later
+
+    struct mem_arena temp_mem = create_scoped_arena(*mem);
+
+    for(u32 i = 0; i < format.size; ++i)
+    {
+        if(format.data[i] == '%')
+        {
+            struct format_specifier fs = string_extract_format_specifier(format, &i);
+            struct string to_insert = {};
+            b8 negative = false;
+            switch (fs.type)
+            {
+                case FS_INSERT_PERCENT:
+                    to_insert = char_to_string('%', &temp_mem);
+                break;
+                case FS_CHARACTER:
+                    u8 character = (u8)va_arg(args, u32);
+                    to_insert = char_to_string(character, &temp_mem);
+                break;
+                case FS_STRING:
+                    to_insert = va_arg(args, struct string);
+                break;
+                case FS_INTEGER:
+                {
+                    s32 value = va_arg(args, s32);
+                    if(value<0)
+                    {
+                        value = -value;
+                        negative = true;
+                    }
+                    to_insert = s32_to_string(value, &temp_mem); 
+                }
+                break;
+                case FS_UNSIGNED_INTEGER:
+                {
+                    u32 value = va_arg(args, u32);
+                    to_insert = u32_to_string(value, &temp_mem); 
+                }
+                break;
+                case FS_FLOAT:
+                {
+                    f64 value = va_arg(args, f64);
+                    if(value<0)
+                    {
+                        value = -value;
+                        negative = true;
+                    }
+                    to_insert = f64_to_string(value, fs.precision, &temp_mem); 
+                }
+                break;
+            }
+
+            // pad to width
+            //
+            if(MASK(fs.align, FS_ZERO_LEAD))
+            {
+                if(negative)
+                {
+                    str.data[str.size++] = '-';
+                }
+                else if(MASK(fs.align, FS_SIGN))
+                {
+                    str.data[str.size++] = '+';
+                }
+            }
+            if(!MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
+            {
+                u8 padding_char = ' ';
+                if(MASK(fs.align, FS_ZERO_LEAD))
+                {
+                    padding_char = '0';
+                }
+
+                u32 pad_size = fs.width - to_insert.size;
+                if(to_insert.size > fs.width)
+                {
+                    pad_size = 0;
+                }
+                if(fs.type == FS_STRING && fs.precision != 0)
+                {
+                    pad_size = fs.width - fs.precision;
+                }
+                for(u32 i = 0; i < pad_size; ++i)
+                {
+                    str.data[str.size++] = padding_char;
+                }
+            }
+            if(!MASK(fs.align, FS_ZERO_LEAD))
+            {
+                if(negative)
+                {
+                    str.data[str.size++] = '-';
+                }
+                else if(MASK(fs.align, FS_SIGN))
+                {
+                    str.data[str.size++] = '+';
+                }
+            }
+
+            // print the actual string
+            u32 write_count = to_insert.size;
+            if(fs.type == FS_STRING && fs.precision != 0)
+            {
+                write_count = MIN(to_insert.size, fs.precision);
+            }
+            for(u8* c = to_insert.data; c != to_insert.data + write_count; ++c)
+            {
+                str.data[str.size++] = *c;
+            }
+
+            // pad to width left
+            if(MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
+            {
+                u32 pad_size = fs.width - to_insert.size;
+                if(to_insert.size > fs.width)
+                {
+                    pad_size = 0;
+                }
+                if(fs.type == FS_STRING && fs.precision != 0)
+                {
+                    pad_size = fs.width - fs.precision;
+                }
+                for(u32 i = 0; i < pad_size; ++i)
+                {
+                    str.data[str.size++] = ' ';
+                }
+            }
+        }
+        str.data[str.size++] = format.data[i];
+    }
+
+    va_end(args);
+
+
+    return(str);
 }
 
 
