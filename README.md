@@ -16,6 +16,8 @@ Tasks can be tagged with various tags so they can be queried by them later.
 - [ ] create a string builder like construct for functions like string_format
 - [ ] further related tags when querying entries
 - [ ] sort tags by last used, etc...
+- [ ] when scoped arena is created of an arena it should not be possible to use 
+      the normal arena for allocations
 
 ## Features
 
