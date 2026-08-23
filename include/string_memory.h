@@ -434,7 +434,8 @@ string_format(struct string format, struct mem_arena *mem, ...)
     va_list args;    
     va_start(args, mem);
 
-    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    //TODO: bad: do not allocate memory on every function call
+    struct mem_arena temp_mem = create_mem_arena(10*KB); 
     struct stringbuilder sb = stringbuilder_create(1024, &temp_mem);
 
     for(u32 i = 0; i < format.size; ++i)
@@ -565,7 +566,10 @@ string_format(struct string format, struct mem_arena *mem, ...)
     va_end(args);
 
     //TODO: string memory is allocated "after" the temporary memory currently 
-    return(stringbuilder_build(sb, mem));
+    //      therefore not the same memory pool can be used
+    struct string string = stringbuilder_build(sb, mem);
+    destroy_mem_arena(&temp_mem);
+    return(string);
 }
 
 

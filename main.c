@@ -72,8 +72,6 @@ main(u32 argc, u8** argv)
 
     struct string file = {};
 
-    write_stdout(string_format(create_string("%d\n"), &temp_mem, 1));
-
     if(cli_contains(args, 'h'))
     {
         write_stdout_cstring("tagtime usage:\n");
