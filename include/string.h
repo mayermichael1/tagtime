@@ -4,8 +4,9 @@
 struct string
 {
     u32 size; //NOTE: this needs to be first for serialization
-    u8 *data;
+    u8 *data; //TODO: this could be u8 data[];
 };
+
 
 struct string
 create_string(const char* value)
@@ -147,5 +148,17 @@ string_compare(struct string str1, struct string str2)
 
     return(result);
 }
+
+
+/// ======================================================================== ///
+/// STRING BUILDER
+/// ======================================================================== ///
+
+struct stringbuilder
+{
+    struct string string;
+    u32 capacity;
+};
+
 
 #endif

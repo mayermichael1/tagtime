@@ -65,12 +65,14 @@ main(u32 argc, u8** argv)
     struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
     set_platform_arena(create_mem_arena(KB));
-    string_local_temp_mem = create_mem_arena(KB);
+    string_local_temp_mem = create_mem_arena(10 * KB);
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
     struct mem_arena temp_mem = create_mem_arena(10 * MB);
 
     struct string file = {};
+
+    write_stdout(string_format(create_string("%d\n"), &temp_mem, 1));
 
     if(cli_contains(args, 'h'))
     {

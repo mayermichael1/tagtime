@@ -7,6 +7,10 @@
 
 global_variable struct mem_arena string_local_temp_mem = {};
 
+/// ======================================================================== ///
+/// STRING 
+/// ======================================================================== ///
+
 struct string
 create_mem_string(u32 size, struct mem_arena *mem)
 {
@@ -37,11 +41,10 @@ to_c_string(struct string str, struct mem_arena *scratch)
 ///
 /// @return returns the string struct
 //TODO: test this function
-/*
-string 
-string_copy(string str, mem_arena *scratch)
+struct string 
+string_copy(struct string str, struct mem_arena *scratch)
 {
-    string memstr = {};
+    struct string memstr = {};
     memstr.data = ARENA_PUSH_ARRAY(scratch, u8, str.size);
     memstr.size = str.size;
     for(u32 i = 0; i < str.size; ++i)
@@ -50,7 +53,6 @@ string_copy(string str, mem_arena *scratch)
     }
     return(memstr);
 }
-*/
 
 struct string
 string_invert(struct string str, struct mem_arena *mem)
@@ -256,6 +258,49 @@ char_to_string(u8 value, struct mem_arena *mem)
     return(charstr);
 }
 
+/// ======================================================================== ///
+/// STRING BUILDER
+/// ======================================================================== ///
+
+struct stringbuilder
+stringbuilder_create(u32 capacity, struct mem_arena *mem)
+{
+    //TODO: for string_local_temp_mem a general purpose allocater with a free list 
+    //would be nice, in that case the user would not need to provide its own arena
+    //to a string builder_function
+    struct stringbuilder sb = {};
+    sb.string.data = ARENA_PUSH_ARRAY(mem, u8, capacity);
+    sb.capacity = capacity;
+    return(sb);
+}
+
+struct stringbuilder
+stringbuilder_append(struct stringbuilder sb, struct string string)
+{
+    ASSERT((sb.string.size + string.size) <= sb.capacity);
+    for(u32 i = 0; i < string.size; ++i)
+    {
+        sb.string.data[sb.string.size+i] = string.data[i];
+    }
+    sb.string.size += string.size;
+    return(sb);
+}
+
+struct stringbuilder
+stringbuilder_append_char(struct stringbuilder sb, u8 character)
+{
+    ASSERT((sb.string.size + 1) <= sb.capacity);
+    sb.string.data[sb.string.size++] = character;
+    return(sb);
+}
+
+struct string
+stringbuilder_build(struct stringbuilder sb, struct mem_arena *mem)
+{
+    struct string string = string_copy(sb.string, mem);
+    return(string);
+}
+
 /// 
 /// STRING FORMAT
 ///
@@ -389,10 +434,8 @@ string_format(struct string format, struct mem_arena *mem, ...)
     va_list args;    
     va_start(args, mem);
 
-    struct string str = {};
-    str.data = ARENA_PUSH_ARRAY(mem, u8, 1024); //TODO: for now string can be maximum of 1024 characters long change this later
-
-    struct mem_arena temp_mem = create_scoped_arena(*mem);
+    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    struct stringbuilder sb = stringbuilder_create(1024, &temp_mem);
 
     for(u32 i = 0; i < format.size; ++i)
     {
@@ -405,42 +448,42 @@ string_format(struct string format, struct mem_arena *mem, ...)
             {
                 case FS_INSERT_PERCENT:
                     to_insert = char_to_string('%', &temp_mem);
-                break;
+                    break;
                 case FS_CHARACTER:
                     u8 character = (u8)va_arg(args, u32);
                     to_insert = char_to_string(character, &temp_mem);
-                break;
+                    break;
                 case FS_STRING:
                     to_insert = va_arg(args, struct string);
-                break;
+                    break;
                 case FS_INTEGER:
-                {
-                    s32 value = va_arg(args, s32);
-                    if(value<0)
                     {
-                        value = -value;
-                        negative = true;
+                        s32 value = va_arg(args, s32);
+                        if(value<0)
+                        {
+                            value = -value;
+                            negative = true;
+                        }
+                        to_insert = s32_to_string(value, &temp_mem); 
                     }
-                    to_insert = s32_to_string(value, &temp_mem); 
-                }
-                break;
+                    break;
                 case FS_UNSIGNED_INTEGER:
-                {
-                    u32 value = va_arg(args, u32);
-                    to_insert = u32_to_string(value, &temp_mem); 
-                }
-                break;
-                case FS_FLOAT:
-                {
-                    f64 value = va_arg(args, f64);
-                    if(value<0)
                     {
-                        value = -value;
-                        negative = true;
+                        u32 value = va_arg(args, u32);
+                        to_insert = u32_to_string(value, &temp_mem); 
                     }
-                    to_insert = f64_to_string(value, fs.precision, &temp_mem); 
-                }
-                break;
+                    break;
+                case FS_FLOAT:
+                    {
+                        f64 value = va_arg(args, f64);
+                        if(value<0)
+                        {
+                            value = -value;
+                            negative = true;
+                        }
+                        to_insert = f64_to_string(value, fs.precision, &temp_mem); 
+                    }
+                    break;
             }
 
             // pad to width
@@ -449,11 +492,11 @@ string_format(struct string format, struct mem_arena *mem, ...)
             {
                 if(negative)
                 {
-                    str.data[str.size++] = '-';
+                    sb = stringbuilder_append_char(sb, '-');
                 }
                 else if(MASK(fs.align, FS_SIGN))
                 {
-                    str.data[str.size++] = '+';
+                    sb = stringbuilder_append_char(sb, '+');
                 }
             }
             if(!MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
@@ -475,18 +518,18 @@ string_format(struct string format, struct mem_arena *mem, ...)
                 }
                 for(u32 i = 0; i < pad_size; ++i)
                 {
-                    str.data[str.size++] = padding_char;
+                    sb = stringbuilder_append_char(sb, padding_char);
                 }
             }
             if(!MASK(fs.align, FS_ZERO_LEAD))
             {
                 if(negative)
                 {
-                    str.data[str.size++] = '-';
+                    sb = stringbuilder_append_char(sb, '-');
                 }
                 else if(MASK(fs.align, FS_SIGN))
                 {
-                    str.data[str.size++] = '+';
+                    sb = stringbuilder_append_char(sb, '-');
                 }
             }
 
@@ -496,10 +539,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
             {
                 write_count = MIN(to_insert.size, fs.precision);
             }
-            for(u8* c = to_insert.data; c != to_insert.data + write_count; ++c)
-            {
-                str.data[str.size++] = *c;
-            }
+            sb = stringbuilder_append(sb, string_split_to(to_insert, write_count));
 
             // pad to width left
             if(MASK(fs.align, FS_LEFT_JUSTIFY) && fs.width != 0)
@@ -515,17 +555,17 @@ string_format(struct string format, struct mem_arena *mem, ...)
                 }
                 for(u32 i = 0; i < pad_size; ++i)
                 {
-                    str.data[str.size++] = ' ';
+                    sb = stringbuilder_append_char(sb, ' ');
                 }
             }
         }
-        str.data[str.size++] = format.data[i];
+        sb = stringbuilder_append_char(sb, format.data[i]);
     }
 
     va_end(args);
 
-
-    return(str);
+    //TODO: string memory is allocated "after" the temporary memory currently 
+    return(stringbuilder_build(sb, mem));
 }
 
 
