@@ -149,19 +149,24 @@ seconds_since_epoch()
 struct string
 get_data_directory()
 {
-    struct string dir = create_string(getenv("XDG_DATA_HOME"));
+    //TODO: should not create temp mem here
+    struct mem_arena temp = create_mem_arena(1024);
+    struct stringbuilder sb = stringbuilder_create(1024, &temp);
+    sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
     // TODO: determinine application name dynamically somehow
-    // TODO: stringbuilder for appending strings here. right now string 
-    //       is just duplicated and stored in abcking store again
-    if(dir.size == 0)
+    if(sb.string.size == 0)
     {
-        dir = create_string(getenv("HOME"));
-        dir = string_append(dir, create_string("/.local/share/tagtime/"), &platform_local_temp_mem);
+
+        sb = stringbuilder_append(sb, create_string(getenv("HOME")));
+        sb = stringbuilder_append(sb, create_string("/.local/share/tagtime/"));
     }
     else
     {
-        dir = string_append(dir, create_string("/tagtime/"), &platform_local_temp_mem);
+        sb = stringbuilder_append(sb, create_string("/tagtime/"));
     }
+    //TODO: not really temp mem usage
+    struct string dir = stringbuilder_build(sb, &platform_local_temp_mem);
+    destroy_mem_arena(&temp);
     return(dir);
 }
 
