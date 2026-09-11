@@ -5,19 +5,21 @@ Tasks can be tagged with various tags so they can be queried by them later.
 
 ## TODOs
 
-- [x] create new entries through an assistant (create uncreated tags, etc)
-- [ ] bug in cli parser, does not stop upon - in multiple arguments. Intentional?
-- [x] weekly / monthly reports etc
-- [x] do not use typedef for structs
-- [x] create printf replacement
-      idea: only print a string
-      create formatting for the string class so it can be used for other things
-      as well
-- [ ] create a string builder like construct for functions like string_format
-- [ ] further related tags when querying entries
-- [ ] sort tags by last used, etc...
+### MEM Rework 
+
+- [ ] one instance where platform local temp mem is used for persistent storage
+      of a string
 - [ ] when scoped arena is created of an arena it should not be possible to use 
       the normal arena for allocations
+- [ ] restructure mem_arena API
+      renaming by having the subject first e.g.: mem_arena_create
+
+### General
+
+- [ ] bug in cli parser, does not stop upon - in multiple arguments. Intentional?
+- [ ] further related tags when querying entries
+- [ ] sort tags by last used, etc...
+
 
 ## Features
 
