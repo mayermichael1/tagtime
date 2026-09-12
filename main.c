@@ -71,31 +71,6 @@ main(u32 argc, u8** argv)
 
     struct string file = {};
 
-    /// TEST CODE
-    ///
-    {
-        struct mem_arena mem = mem_arena_create_with_flags(KB, MEM_ARENA_NO_ZERO_INIT);
-
-        {
-            struct mem_arena temp = mem_arena_create_scoped(mem);
-            u8* pointer = (u8*)mem_arena_push(&temp, 100);
-            for(u32 i = 0; i < 100; ++i)
-            {
-                pointer[i] = i;
-                write_stdout(string_format(create_string("%d \t"), &scratch, pointer[i]));
-            }
-        }
-
-        u8* pointer = (u8*)mem_arena_push(&mem, 100);
-        for(u32 i = 0; i < 100; ++i)
-        {
-            write_stdout(string_format(create_string("%d \t"), &scratch, pointer[i]));
-        }
-
-    }
-
-    /// TEST CODE END
-
     if(cli_contains(args, 'h'))
     {
         write_stdout_cstring("tagtime usage:\n");
