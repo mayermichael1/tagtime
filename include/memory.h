@@ -2,10 +2,16 @@
 #define MEMORY_H
 
 #include "platform.h"
+#include "math.h"
 
 #define KB  1024
 #define MB  KB * KB
 #define GB  MB * MB
+
+enum mem_arena_flags
+{
+    MEM_ARENA_NO_ZERO_INIT = 0x01,
+};
 
 /// whenever a sratch_memory is passed as a pointer the buffer is permanently 
 /// changed 
@@ -20,6 +26,7 @@ struct mem_arena
     umm start;  
     umm current; 
     umm end; 
+    enum mem_arena_flags flags;
 };
 
 
@@ -44,20 +51,30 @@ mem_arena_zero(umm start, umm end)
     }
 }
 
-/// create_mem_arena 
-///
+/// 
 /// this function creates a scratch memory
 ///
 /// @param  size    size for the whole scratch space
 /// @return returns a new mem_arena
-struct mem_arena 
-mem_arena_create(umm size)
+struct mem_arena
+mem_arena_create_with_flags(umm size, enum mem_arena_flags flags)
 {
     struct mem_arena scratch = {};
+    scratch.flags = flags;
     scratch.start = allocate(size); // TODO: theoretically allocate could fail
     scratch.end = scratch.start + size;
     scratch.current = scratch.start;
     return(scratch);
+}
+
+///
+/// this function creates a scratch memory with default flags
+///
+struct mem_arena 
+mem_arena_create(umm size)
+{
+    struct mem_arena mem = mem_arena_create_with_flags(size, 0);
+    return(mem);
 }
 
 /// scratch_push
@@ -76,7 +93,10 @@ mem_arena_push(struct mem_arena *scratch, umm size)
     ASSERT(mem_arena_remaining(*scratch) >= size);
     umm address = scratch->current;
     //TODO: make this a setting as it may slow down mem allocation
-    mem_arena_zero(address, address+size);
+    if(!MASK(scratch->flags, MEM_ARENA_NO_ZERO_INIT))
+    {
+        mem_arena_zero(address, address+size);
+    }
     scratch->current += size;
     return(address);
 }

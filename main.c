@@ -61,6 +61,7 @@ main(u32 argc, u8** argv)
     //
     //
     //
+    //
 
     struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
@@ -69,6 +70,31 @@ main(u32 argc, u8** argv)
     struct mem_arena scratch = mem_arena_create(10 * MB);
 
     struct string file = {};
+
+    /// TEST CODE
+    ///
+    {
+        struct mem_arena mem = mem_arena_create_with_flags(KB, MEM_ARENA_NO_ZERO_INIT);
+
+        {
+            struct mem_arena temp = mem_arena_create_scoped(mem);
+            u8* pointer = (u8*)mem_arena_push(&temp, 100);
+            for(u32 i = 0; i < 100; ++i)
+            {
+                pointer[i] = i;
+                write_stdout(string_format(create_string("%d \t"), &scratch, pointer[i]));
+            }
+        }
+
+        u8* pointer = (u8*)mem_arena_push(&mem, 100);
+        for(u32 i = 0; i < 100; ++i)
+        {
+            write_stdout(string_format(create_string("%d \t"), &scratch, pointer[i]));
+        }
+
+    }
+
+    /// TEST CODE END
 
     if(cli_contains(args, 'h'))
     {
