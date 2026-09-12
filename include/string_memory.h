@@ -16,14 +16,14 @@ create_mem_string(u32 size, struct mem_arena *mem)
 {
     struct string str = {};
     str.size = size;
-    str.data = ARENA_PUSH_ARRAY(mem, u8, str.size);
+    str.data = MEM_ARENA_PUSH_ARRAY(mem, u8, str.size);
     return(str);
 }
 
 const char *
 to_c_string(struct string str, struct mem_arena *scratch)
 {
-    u8* cstring = ARENA_PUSH_ARRAY(scratch, u8, (str.size+1));
+    u8* cstring = MEM_ARENA_PUSH_ARRAY(scratch, u8, (str.size+1));
     for(u32 i = 0; i < str.size; ++i)
     {
         cstring[i] = str.data[i];
@@ -45,7 +45,7 @@ struct string
 string_copy(struct string str, struct mem_arena *scratch)
 {
     struct string memstr = {};
-    memstr.data = ARENA_PUSH_ARRAY(scratch, u8, str.size);
+    memstr.data = MEM_ARENA_PUSH_ARRAY(scratch, u8, str.size);
     memstr.size = str.size;
     for(u32 i = 0; i < str.size; ++i)
     {
@@ -71,7 +71,7 @@ string_append(struct string str1, struct string str2, struct mem_arena *scratch)
 {
     struct string appended = {};
     appended.size = str1.size+str2.size;
-    appended.data = ARENA_PUSH_ARRAY(scratch, u8, appended.size);
+    appended.data = MEM_ARENA_PUSH_ARRAY(scratch, u8, appended.size);
     for(u32 i = 0; i < str1.size; ++i)
     {
         appended.data[i] = str1.data[i];
@@ -112,7 +112,7 @@ struct string
 s64_to_string(s64 value, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
 
     b8 negative = value < 0;
     if(negative)
@@ -154,7 +154,7 @@ struct string
 u64_to_string(u64 value, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
     struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
     struct string inv = string_invert(str, mem);
     return(inv);
@@ -182,7 +182,7 @@ struct string
 f64_to_string(f64 value, u32 precision, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = create_scoped_arena(string_local_temp_mem);
+    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
 
     b8 negative = value < 0;
     if(negative)
@@ -253,7 +253,7 @@ char_to_string(u8 value, struct mem_arena *mem)
 {
     struct string charstr = {};
     charstr.size = 1;
-    charstr.data = ARENA_PUSH_ARRAY(mem, u8, 1);
+    charstr.data = MEM_ARENA_PUSH_ARRAY(mem, u8, 1);
     charstr.data[0] = value;
     return(charstr);
 }
@@ -269,7 +269,7 @@ stringbuilder_create(u32 capacity, struct mem_arena *mem)
     //would be nice, in that case the user would not need to provide its own arena
     //to a string builder_function
     struct stringbuilder sb = {};
-    sb.string.data = ARENA_PUSH_ARRAY(mem, u8, capacity);
+    sb.string.data = MEM_ARENA_PUSH_ARRAY(mem, u8, capacity);
     sb.capacity = capacity;
     return(sb);
 }
@@ -435,7 +435,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
     va_start(args, mem);
 
     //TODO: bad: do not allocate memory on every function call
-    struct mem_arena temp_mem = create_mem_arena(10*KB); 
+    struct mem_arena temp_mem = mem_arena_create(10*KB); 
     struct stringbuilder sb = stringbuilder_create(1024, &temp_mem);
 
     for(u32 i = 0; i < format.size; ++i)
@@ -568,7 +568,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
     //TODO: string memory is allocated "after" the temporary memory currently 
     //      therefore not the same memory pool can be used
     struct string string = stringbuilder_build(sb, mem);
-    destroy_mem_arena(&temp_mem);
+    mem_arena_destroy(&temp_mem);
     return(string);
 }
 

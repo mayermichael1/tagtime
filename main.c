@@ -64,11 +64,11 @@ main(u32 argc, u8** argv)
 
     struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
 
-    set_platform_arena(create_mem_arena(KB));
-    string_local_temp_mem = create_mem_arena(10 * KB);
+    set_platform_arena(mem_arena_create(KB));
+    string_local_temp_mem = mem_arena_create(10 * KB);
     //TODO: most of this is not actually used as a scratch temp memory but as general 
     //      allocator
-    struct mem_arena temp_mem = create_mem_arena(10 * MB);
+    struct mem_arena temp_mem = mem_arena_create(10 * MB);
 
     struct string file = {};
 
@@ -106,7 +106,7 @@ main(u32 argc, u8** argv)
         if(cli_contains(args, 'c'))
         {
             struct string time_string =  cli_get_arg(args, 'c', 0);
-            struct mem_arena temp = create_scoped_arena(temp_mem); 
+            struct mem_arena temp = mem_arena_create_scoped(temp_mem); 
             struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
@@ -133,13 +133,13 @@ main(u32 argc, u8** argv)
                 write_stdout_cstring("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
-                    struct mem_arena temp = create_scoped_arena(temp_mem);
+                    struct mem_arena temp = mem_arena_create_scoped(temp_mem);
                     write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
                 }
             }
             else if(cli_option_count(args, 't') != 0)
             {
-                struct mem_arena temp = create_scoped_arena(temp_mem); 
+                struct mem_arena temp = mem_arena_create_scoped(temp_mem); 
                 struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
 
                 //TODO: dynamically create tags if they do not exist -a should be pointless then
@@ -217,7 +217,7 @@ main(u32 argc, u8** argv)
                         if(cli_contains(args, 'l'))
                         {
                             struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                            struct mem_arena temp = create_scoped_arena(temp_mem);
+                            struct mem_arena temp = mem_arena_create_scoped(temp_mem);
                             write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                         }
                     }
@@ -225,14 +225,14 @@ main(u32 argc, u8** argv)
                 if(cli_contains(args, 's'))
                 {
                     struct duration_minutes time = minute_to_time(sum_minutes);
-                    struct mem_arena temp = create_scoped_arena(temp_mem);
+                    struct mem_arena temp = mem_arena_create_scoped(temp_mem);
                     write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                 }
             }
         }
         else if(cli_contains(args, 'a'))
         {
-            struct mem_arena temp = create_scoped_arena(temp_mem);
+            struct mem_arena temp = mem_arena_create_scoped(temp_mem);
             struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
             create_uncreated_tags_assistant(&data, tags, &temp);
         }

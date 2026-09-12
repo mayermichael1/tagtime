@@ -150,7 +150,7 @@ struct string
 get_data_directory()
 {
     //TODO: should not create temp mem here
-    struct mem_arena temp = create_mem_arena(1024);
+    struct mem_arena temp = mem_arena_create(1024);
     struct stringbuilder sb = stringbuilder_create(1024, &temp);
     sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
     // TODO: determinine application name dynamically somehow
@@ -166,7 +166,7 @@ get_data_directory()
     }
     //TODO: not really temp mem usage
     struct string dir = stringbuilder_build(sb, &platform_local_temp_mem);
-    destroy_mem_arena(&temp);
+    mem_arena_destroy(&temp);
     return(dir);
 }
 
@@ -174,7 +174,7 @@ struct string_array
 cli_get_args(struct cli_arguments arguments, u8 option, struct mem_arena *arena)
 {
     struct string_array arr = {.count = cli_option_count(arguments, option)};
-    arr.data = ARENA_PUSH_ARRAY(arena, struct string, arr.count);
+    arr.data = MEM_ARENA_PUSH_ARRAY(arena, struct string, arr.count);
 
     for(u32 i = 0; i < arr.count; ++i)
     {

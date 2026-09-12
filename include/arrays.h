@@ -23,7 +23,7 @@ struct u64_array
 create_incrementing_array(struct mem_arena *memory, u64 count)
 {
     struct u64_array arr = {.count = count};
-    arr.data = ARENA_PUSH_ARRAY(memory, u64, arr.count);
+    arr.data = MEM_ARENA_PUSH_ARRAY(memory, u64, arr.count);
     for(u32 i=0; i<arr.count; ++i)
     {
         arr.data[i] = i+1;

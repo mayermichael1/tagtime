@@ -24,15 +24,24 @@ struct mem_arena
 
 
 internal umm
-arena_remaining(struct mem_arena scratch)
+mem_arena_remaining(struct mem_arena scratch)
 {
     return(scratch.end - scratch.current);
 }
 
 internal umm
-arena_size(struct mem_arena scratch)
+mem_arena_size(struct mem_arena scratch)
 {
     return(scratch.end - scratch.start);
+}
+
+internal void 
+mem_arena_zero(umm start, umm end)
+{
+    for(umm curr = start; curr < end; ++curr)
+    {
+        ((u8*)0)[curr] = 0;
+    }
 }
 
 /// create_mem_arena 
@@ -42,7 +51,7 @@ arena_size(struct mem_arena scratch)
 /// @param  size    size for the whole scratch space
 /// @return returns a new mem_arena
 struct mem_arena 
-create_mem_arena(umm size)
+mem_arena_create(umm size)
 {
     struct mem_arena scratch = {};
     scratch.start = allocate(size); // TODO: theoretically allocate could fail
@@ -50,16 +59,6 @@ create_mem_arena(umm size)
     scratch.current = scratch.start;
     return(scratch);
 }
-
-void 
-internal_mem_set(umm start, umm end)
-{
-    for(umm curr = start; curr < end; ++curr)
-    {
-        ((u8*)0)[curr] = 0;
-    }
-}
-
 
 /// scratch_push
 ///
@@ -72,18 +71,18 @@ internal_mem_set(umm start, umm end)
 //TODO: maybe create a safe function that zeroes out memory when allocating
 //      currently memory is returned as is 
 umm
-push_mem_arena(struct mem_arena *scratch, umm size)
+mem_arena_push(struct mem_arena *scratch, umm size)
 {
-    ASSERT(arena_remaining(*scratch) >= size);
+    ASSERT(mem_arena_remaining(*scratch) >= size);
     umm address = scratch->current;
     //TODO: make this a setting as it may slow down mem allocation
-    internal_mem_set(address, address+size);
+    mem_arena_zero(address, address+size);
     scratch->current += size;
     return(address);
 }
 
-#define ARENA_PUSH_STRUCT(scratch, structname) (structname*)push_mem_arena(scratch, sizeof(structname))
-#define ARENA_PUSH_ARRAY(scratch, structname, entries) (structname*)push_mem_arena(scratch, sizeof(structname) * (entries))
+#define MEM_ARENA_PUSH_STRUCT(scratch, structname) (structname*)mem_arena_push(scratch, sizeof(structname))
+#define MEM_ARENA_PUSH_ARRAY(scratch, structname, entries) (structname*)mem_arena_push(scratch, sizeof(structname) * (entries))
 //NOTE: this directly creates a struct containing first the count and then the array containing the elements
 //TODO: following is allowed in C99
 //      struct arr
@@ -100,9 +99,9 @@ push_mem_arena(struct mem_arena *scratch, umm size)
 ///
 /// @param  mem_arena  scratch space to destroy
 void
-destroy_mem_arena(struct mem_arena *scratch)
+mem_arena_destroy(struct mem_arena *scratch)
 {
-    deallocate(scratch->start, arena_size(*scratch));
+    deallocate(scratch->start, mem_arena_size(*scratch));
     scratch->start = 0;
     scratch->end = 0;
     scratch->current = 0;
@@ -124,7 +123,7 @@ destroy_mem_arena(struct mem_arena *scratch)
  * @return  exact copy of the struct
  */
 struct mem_arena
-create_scoped_arena(struct mem_arena arena)
+mem_arena_create_scoped(struct mem_arena arena)
 {
     return(arena);
 }
