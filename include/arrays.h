@@ -79,8 +79,6 @@ arr_remove_values(struct u64_array *arr, u64 element)
  * @param   pointer to first array, data will actually be changed
  * @param   second array, stays the sae
  */
-//TODO: currently sets values to 0 which is not needed. change this so it can be 
-//used generally
 void
 intersect_arrays(struct u64_array *a, struct u64_array b)
 {
@@ -99,11 +97,10 @@ intersect_arrays(struct u64_array *a, struct u64_array b)
 
         if(!element_found)
         {
-            intersect.data[i] = 0;
+            arr_remove_idx(&intersect, i);
+            --i;
         }
     }
-
-    arr_remove_values(&intersect, 0);
 
     *a = intersect;
 }
