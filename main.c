@@ -105,7 +105,7 @@ main(u32 argc, u8** argv)
         {
             struct string time_string =  cli_get_arg(args, 'c', 0);
             struct mem_arena temp = mem_arena_create_scoped(scratch); 
-            struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+            struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
             if(tags.count != 0)
             {
                 if(create_uncreated_tags_assistant(&data, tags, &temp))
@@ -138,9 +138,8 @@ main(u32 argc, u8** argv)
             else if(cli_option_count(args, 't') != 0)
             {
                 struct mem_arena temp = mem_arena_create_scoped(scratch); 
-                struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+                struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
 
-                //TODO: dynamically create tags if they do not exist -a should be pointless then
                 if(contains_uncreated_tags(tags))
                 { 
                     write_stdout_cstring("Not all provided tags exist \n");
@@ -231,7 +230,7 @@ main(u32 argc, u8** argv)
         else if(cli_contains(args, 'a'))
         {
             struct mem_arena temp = mem_arena_create_scoped(scratch);
-            struct tag_array tags = tags_to_array(&data, cli_get_args(args, 't', &temp), &temp); 
+            struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
             create_uncreated_tags_assistant(&data, tags, &temp);
         }
 

@@ -13,7 +13,6 @@
  *
  * @param   filename filename to load the data from
  * @param   temp    memory arena used for temporary tasks  
- *          //TODO: remove these kind of temp mem usages
  *  
  * @return  time_data struct containing the read data
  */
@@ -92,7 +91,6 @@ data_from_file(struct string filename, struct mem_arena temp)
  * @param   filename to be written to
  * @param   time_data struct containing the actual data
  * @param   temp_memory needed for file_writes
- *          //TODO: remove temp_memory usage
  */
 void 
 data_to_file(struct string filename, struct time_data data, struct mem_arena temp)
@@ -386,9 +384,8 @@ minute_to_time(u64 minutes)
 /**
  * takes an array of cli_argumnts (essentially string array) and create a
  */
-//TODO: time_data does not need to be a pointer here
 struct tag_array
-tags_to_array(struct time_data *data, struct string_array tags, struct mem_arena *memory)
+tags_to_array(struct time_data data, struct string_array tags, struct mem_arena *memory)
 {
     struct tag_array arr = {};
     arr.ids = MEM_ARENA_PUSH_ARRAY(memory, u64, tags.count);
@@ -397,7 +394,7 @@ tags_to_array(struct time_data *data, struct string_array tags, struct mem_arena
 
     for(u32 i=0; i<tags.count; ++i)
     {
-        arr.ids[i] = get_tag_id(*data, tags.data[i]);
+        arr.ids[i] = get_tag_id(data, tags.data[i]);
     }
     return(arr);
 }
