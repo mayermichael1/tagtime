@@ -13,6 +13,7 @@ Tasks can be tagged with various tags so they can be queried by them later.
       the normal arena for allocations
 - [x] restructure mem_arena API
       renaming by having the subject first e.g.: mem_arena_create
+- [ ] mem_arena_create in string usage code
 
 ### General
 
