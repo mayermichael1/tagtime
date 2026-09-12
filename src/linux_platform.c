@@ -145,10 +145,9 @@ seconds_since_epoch()
 }
 
 struct string
-get_data_directory()
+get_data_directory(struct mem_arena *mem)
 {
-    //TODO: should not create temp mem here
-    struct mem_arena temp = mem_arena_create(1024);
+    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
     struct stringbuilder sb = stringbuilder_create(1024, &temp);
     sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
     // TODO: determinine application name dynamically somehow
@@ -162,9 +161,7 @@ get_data_directory()
     {
         sb = stringbuilder_append(sb, create_string("/tagtime/"));
     }
-    //TODO: not really temp mem usage
-    struct string dir = stringbuilder_build(sb, &platform_local_temp_mem);
-    mem_arena_destroy(&temp);
+    struct string dir = stringbuilder_build(sb, mem);
     return(dir);
 }
 

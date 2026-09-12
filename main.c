@@ -98,7 +98,7 @@ main(u32 argc, u8** argv)
         }
         else
         {
-            file = string_append(get_data_directory(), create_string("tagtime.data"), &temp_mem);
+            file = string_append(get_data_directory(&temp_mem), create_string("tagtime.data"), &temp_mem);
         }
 
         struct time_data data = data_from_file(file, temp_mem);
