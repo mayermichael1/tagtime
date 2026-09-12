@@ -46,17 +46,12 @@ read_u8_stdin(){
     return(character);
 }
 
-void
-set_platform_arena(struct mem_arena arena)
-{
-    platform_local_temp_mem = arena;
-}
-
 u64 
 get_file_size(struct string filename)
 {
     struct stat st;
-    const char *cfile = to_c_string(filename, &platform_local_temp_mem);
+    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
+    const char *cfile = to_c_string(filename, &temp);
     u64 filesize = 0;
     if(stat(cfile, &st)==0)
     {
@@ -74,7 +69,8 @@ read_file(struct string filename, u64 len, u8 *buffer)
 void
 read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
 {
-    s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_RDONLY);
+    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
+    s32 file = open(to_c_string(filename, &temp), O_RDONLY);
 
     if(file > 0)
     {
@@ -88,11 +84,12 @@ void
 write_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    const char *dir = to_c_string(dirname, &platform_local_temp_mem);
+    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
+    const char *dir = to_c_string(dirname, &temp);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
     {
-        s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+        s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_TRUNC, 0777);
 
         if(file > 0)
         {
@@ -107,11 +104,12 @@ void
 append_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    const char *dir = to_c_string(dirname, &platform_local_temp_mem);
+    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
+    const char *dir = to_c_string(dirname, &temp);
 
     if(mkdir(dir, 0777) == 0 || errno == EEXIST)
     {
-        s32 file = open(to_c_string(filename, &platform_local_temp_mem), O_WRONLY | O_CREAT | O_APPEND, 0777);
+        s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_APPEND, 0777);
 
         if(file > 0)
         {
