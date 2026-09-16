@@ -42,4 +42,6 @@ typedef s64         smm;
 
 #define NULL 0
 
+#define FOR_DEFER_BLOCK(before, after) for(u32 i = ((before), 0); i < 1; ++i , (after))
+
 #endif 

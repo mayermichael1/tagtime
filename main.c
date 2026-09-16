@@ -71,6 +71,15 @@ main(u32 argc, u8** argv)
 
     struct string file = {};
 
+    FOR_DEFER_BLOCK(
+        write_stdout_cstring("before"),
+        write_stdout_cstring("after")
+    )
+    {
+        write_stdout_cstring("middle");
+    }
+    write_stdout_cstring("\n");
+
     if(cli_contains(args, 'h'))
     {
         write_stdout_cstring("tagtime usage:\n");
