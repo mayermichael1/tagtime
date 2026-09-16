@@ -9,11 +9,15 @@ Tasks can be tagged with various tags so they can be queried by them later.
 
 - [x] one instance where platform local temp mem is used for persistent storage
       of a string
+- [ ] mem_arena_create in string usage code
+      instead of using a stringbuilder for number to string functions create the
+      string inline of the stringbuilder
+      then create abstractions directly returning string
 - [ ] when scoped arena is created of an arena it should not be possible to use 
       the normal arena for allocations
+      use defer loop to create scoped arenas and mark current arena with a flag
 - [x] restructure mem_arena API
       renaming by having the subject first e.g.: mem_arena_create
-- [ ] mem_arena_create in string usage code
 
 ### General
 
