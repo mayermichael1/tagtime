@@ -11,6 +11,9 @@
 enum mem_arena_flags
 {
     MEM_ARENA_NO_ZERO_INIT = 0x01,
+    MEM_ARENA_CURRENTLY_SCOPED = 0x10, // is this memory currently being used as 
+                                       // a scoped memory if so it may not be 
+                                       // used to allocate more memory 
 };
 
 /// whenever a sratch_memory is passed as a pointer the buffer is permanently 
@@ -91,6 +94,7 @@ umm
 mem_arena_push(struct mem_arena *scratch, umm size)
 {
     ASSERT(mem_arena_remaining(*scratch) >= size);
+    ASSERT(!MASK(scratch->flags, MEM_ARENA_CURRENTLY_SCOPED));
     umm address = scratch->current;
     //TODO: make this a setting as it may slow down mem allocation
     if(!MASK(scratch->flags, MEM_ARENA_NO_ZERO_INIT))
@@ -147,6 +151,43 @@ mem_arena_create_scoped(struct mem_arena arena)
 {
     return(arena);
 }
+
+/**
+ * creates a scoped mem arena from an existing one
+ *
+ * @param   mem arena to scope
+ *
+ * @return  mem arena that can be used until it is ended
+ */
+struct mem_arena
+mem_arena_scoped_begin(struct mem_arena *source)
+{
+    struct mem_arena scoped = *source;
+    source->flags |= MEM_ARENA_CURRENTLY_SCOPED;
+    return(scoped);
+}
+
+void
+mem_arena_scoped_begin_scoped_as_pointer(struct mem_arena *source, struct mem_arena *scoped)
+{
+    *scoped = mem_arena_scoped_begin(source);
+}
+
+/**
+ * end a scoped arena 
+ *
+ * @param   mem_arena originally scoped from
+ * @param   the scoped arena
+ */
+void
+mem_arena_scoped_end(struct mem_arena *original_memory, struct mem_arena *scoped)
+{
+    (*scoped) = (struct mem_arena){};
+    original_memory->flags &= (~MEM_ARENA_CURRENTLY_SCOPED);
+}
+
+//TODO: not quite happy with this as the scoped memory has to be provided as well
+#define MEM_ARENA_SCOPE(mem, scoped) FOR_DEFER_BLOCK(mem_arena_scoped_begin_scoped_as_pointer(&mem, &scoped), mem_arena_scoped_end(&mem, &scoped))
 
 
 #endif 

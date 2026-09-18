@@ -71,14 +71,19 @@ main(u32 argc, u8** argv)
 
     struct string file = {};
 
-    FOR_DEFER_BLOCK(
-        write_stdout_cstring("before"),
-        write_stdout_cstring("after")
-    )
     {
-        write_stdout_cstring("middle");
+    
+        struct mem_arena test = mem_arena_create(20 * MB);
+        struct mem_arena scoped = {}; 
+        MEM_ARENA_SCOPE(test, scoped)
+        {
+            int *p = MEM_ARENA_PUSH_STRUCT(&scoped, int);
+            *p = 5;
+
+            write_stdout(string_format(create_string("%d\n"), &scratch, (u64)p));
+        }
+        int *p = MEM_ARENA_PUSH_STRUCT(&test, int);
     }
-    write_stdout_cstring("\n");
 
     if(cli_contains(args, 'h'))
     {
