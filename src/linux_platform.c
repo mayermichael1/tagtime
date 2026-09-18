@@ -50,12 +50,15 @@ u64
 get_file_size(struct string filename)
 {
     struct stat st;
-    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
-    const char *cfile = to_c_string(filename, &temp);
+    struct mem_arena temp = {};
     u64 filesize = 0;
-    if(stat(cfile, &st)==0)
+    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
     {
-        filesize = st.st_size;
+        const char *cfile = to_c_string(filename, &temp);
+        if(stat(cfile, &st)==0)
+        {
+            filesize = st.st_size;
+        }
     }
     return(filesize);
 }
@@ -69,14 +72,17 @@ read_file(struct string filename, u64 len, u8 *buffer)
 void
 read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
 {
-    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
-    s32 file = open(to_c_string(filename, &temp), O_RDONLY);
-
-    if(file > 0)
+    struct mem_arena temp = {};
+    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
     {
-        lseek(file, from, SEEK_SET);
-        read(file , buffer, len);
-        close(file);
+        s32 file = open(to_c_string(filename, &temp), O_RDONLY);
+
+        if(file > 0)
+        {
+            lseek(file, from, SEEK_SET);
+            read(file , buffer, len);
+            close(file);
+        }
     }
 }
 
@@ -84,17 +90,20 @@ void
 write_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
-    const char *dir = to_c_string(dirname, &temp);
-
-    if(mkdir(dir, 0777) == 0 || errno == EEXIST)
+    struct mem_arena temp = {};
+    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
     {
-        s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+        const char *dir = to_c_string(dirname, &temp);
 
-        if(file > 0)
+        if(mkdir(dir, 0777) == 0 || errno == EEXIST)
         {
-            write(file, buffer, file_size);
-            close(file);
+            s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+
+            if(file > 0)
+            {
+                write(file, buffer, file_size);
+                close(file);
+            }
         }
     }
 }
@@ -104,17 +113,20 @@ void
 append_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
-    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
-    const char *dir = to_c_string(dirname, &temp);
-
-    if(mkdir(dir, 0777) == 0 || errno == EEXIST)
+    struct mem_arena temp = {};
+    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
     {
-        s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_APPEND, 0777);
+        const char *dir = to_c_string(dirname, &temp);
 
-        if(file > 0)
+        if(mkdir(dir, 0777) == 0 || errno == EEXIST)
         {
-            write(file, buffer, file_size);
-            close(file);
+            s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_APPEND, 0777);
+
+            if(file > 0)
+            {
+                write(file, buffer, file_size);
+                close(file);
+            }
         }
     }
 }
@@ -147,21 +159,25 @@ seconds_since_epoch()
 struct string
 get_data_directory(struct mem_arena *mem)
 {
-    struct mem_arena temp = mem_arena_create_scoped(platform_local_temp_mem);
-    struct stringbuilder sb = stringbuilder_create(1024, &temp);
-    sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
-    // TODO: determinine application name dynamically somehow
-    if(sb.string.size == 0)
+    struct mem_arena temp = {};
+    struct string dir = {};
+    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
     {
+        struct stringbuilder sb = stringbuilder_create(1024, &temp);
+        sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
+        // TODO: determinine application name dynamically somehow
+        if(sb.string.size == 0)
+        {
 
-        sb = stringbuilder_append(sb, create_string(getenv("HOME")));
-        sb = stringbuilder_append(sb, create_string("/.local/share/tagtime/"));
+            sb = stringbuilder_append(sb, create_string(getenv("HOME")));
+            sb = stringbuilder_append(sb, create_string("/.local/share/tagtime/"));
+        }
+        else
+        {
+            sb = stringbuilder_append(sb, create_string("/tagtime/"));
+        }
+        dir = stringbuilder_build(sb, mem);
     }
-    else
-    {
-        sb = stringbuilder_append(sb, create_string("/tagtime/"));
-    }
-    struct string dir = stringbuilder_build(sb, mem);
     return(dir);
 }
 

@@ -71,20 +71,6 @@ main(u32 argc, u8** argv)
 
     struct string file = {};
 
-    {
-    
-        struct mem_arena test = mem_arena_create(20 * MB);
-        struct mem_arena scoped = {}; 
-        MEM_ARENA_SCOPE(test, scoped)
-        {
-            int *p = MEM_ARENA_PUSH_STRUCT(&scoped, int);
-            *p = 5;
-
-            write_stdout(string_format(create_string("%d\n"), &scratch, (u64)p));
-        }
-        int *p = MEM_ARENA_PUSH_STRUCT(&test, int);
-    }
-
     if(cli_contains(args, 'h'))
     {
         write_stdout_cstring("tagtime usage:\n");
@@ -119,24 +105,27 @@ main(u32 argc, u8** argv)
         if(cli_contains(args, 'c'))
         {
             struct string time_string =  cli_get_arg(args, 'c', 0);
-            struct mem_arena temp = mem_arena_create_scoped(scratch); 
-            struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
-            if(tags.count != 0)
+            struct mem_arena temp = {};
+            MEM_ARENA_SCOPE(scratch, temp)
             {
-                if(create_uncreated_tags_assistant(&data, tags, &temp))
+                struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
+                if(tags.count != 0)
                 {
-                    u64 duration = string_to_minutes(time_string);
-                    u64 entry_id = insert_time_entry(&data, create_entry(duration));
-                    link_entry_to_tags(&data, entry_id, tags);
+                    if(create_uncreated_tags_assistant(&data, tags, &temp))
+                    {
+                        u64 duration = string_to_minutes(time_string);
+                        u64 entry_id = insert_time_entry(&data, create_entry(duration));
+                        link_entry_to_tags(&data, entry_id, tags);
+                    }
+                    else
+                    {
+                        write_stdout_cstring("not all tags have been created. entry was not inserted.\n");
+                    }
                 }
                 else
                 {
-                    write_stdout_cstring("not all tags have been created. entry was not inserted.\n");
+                    write_stdout_cstring("Time needs to have at least one tag \n");
                 }
-            }
-            else
-            {
-                write_stdout_cstring("Time needs to have at least one tag \n");
             }
         }
         else if(cli_contains(args, 's') || cli_contains(args, 'l'))
@@ -146,60 +135,66 @@ main(u32 argc, u8** argv)
                 write_stdout_cstring("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
-                    struct mem_arena temp = mem_arena_create_scoped(scratch);
-                    write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
+                    struct mem_arena temp = {};
+                    MEM_ARENA_SCOPE(scratch, temp)
+                    {
+                        write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
+                    }
                 }
             }
             else if(cli_option_count(args, 't') != 0)
             {
-                struct mem_arena temp = mem_arena_create_scoped(scratch); 
-                struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
-
-                if(contains_uncreated_tags(tags))
-                { 
-                    write_stdout_cstring("Not all provided tags exist \n");
-                }
-                else
+                struct mem_arena temp = {}; 
+                MEM_ARENA_SCOPE(scratch,temp)
                 {
-                    //TODO: basically the same happens in the -n options 
-                    //      maybe pull out this code in some way 
-                    struct u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
+                    struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
 
-                    u64 sum_minutes = 0;
-
-                    struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
-
-                    if(cli_contains(args, 'm'))
-                    {
-                        s64 offset = string_to_s64(cli_get_arg(args, 'm', 0));
-                        filter_timestamp = month_bounds_offset(seconds_since_epoch(), offset);
+                    if(contains_uncreated_tags(tags))
+                    { 
+                        write_stdout_cstring("Not all provided tags exist \n");
                     }
-
-                    if(cli_contains(args, 'w'))
+                    else
                     {
-                        s64 week_offset = string_to_s64(cli_get_arg(args, 'w', 0));
-                        filter_timestamp = week_bounds_offset(seconds_since_epoch(), week_offset);
-                    }
+                        //TODO: basically the same happens in the -n options 
+                        //      maybe pull out this code in some way 
+                        struct u64_array linked_entries = get_entries_linked_to_tags(data, tags, &temp);
 
+                        u64 sum_minutes = 0;
 
-                    for(u32 i=0; i<linked_entries.count; ++i)
-                    {
-                        u64 entry_id = linked_entries.data[i];
-                        struct time_entry entry = get_entry_by_id(data, entry_id);
-                        if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
+                        struct bound_u64 filter_timestamp = {.lower = U64_MIN, .upper = U64_MAX};
+
+                        if(cli_contains(args, 'm'))
                         {
-                            sum_minutes += entry.minutes;
-                            if(cli_contains(args, 'l'))
+                            s64 offset = string_to_s64(cli_get_arg(args, 'm', 0));
+                            filter_timestamp = month_bounds_offset(seconds_since_epoch(), offset);
+                        }
+
+                        if(cli_contains(args, 'w'))
+                        {
+                            s64 week_offset = string_to_s64(cli_get_arg(args, 'w', 0));
+                            filter_timestamp = week_bounds_offset(seconds_since_epoch(), week_offset);
+                        }
+
+
+                        for(u32 i=0; i<linked_entries.count; ++i)
+                        {
+                            u64 entry_id = linked_entries.data[i];
+                            struct time_entry entry = get_entry_by_id(data, entry_id);
+                            if(in_bound_u64_inclusive(entry.timestamp, filter_timestamp))
                             {
-                                struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                                write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                sum_minutes += entry.minutes;
+                                if(cli_contains(args, 'l'))
+                                {
+                                    struct datetime dt = seconds_to_timestamp(entry.timestamp);
+                                    write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                }
                             }
                         }
-                    }
-                    if(cli_contains(args, 's'))
-                    {
-                        struct duration_minutes time = minute_to_time(sum_minutes);
-                        write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                        if(cli_contains(args, 's'))
+                        {
+                            struct duration_minutes time = minute_to_time(sum_minutes);
+                            write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                        }
                     }
                 }
             }
@@ -229,24 +224,33 @@ main(u32 argc, u8** argv)
                         if(cli_contains(args, 'l'))
                         {
                             struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                            struct mem_arena temp = mem_arena_create_scoped(scratch);
-                            write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                            struct mem_arena temp = {};
+                            MEM_ARENA_SCOPE(scratch,temp)
+                            {
+                                write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                            }
                         }
                     }
                 }
                 if(cli_contains(args, 's'))
                 {
                     struct duration_minutes time = minute_to_time(sum_minutes);
-                    struct mem_arena temp = mem_arena_create_scoped(scratch);
-                    write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                    struct mem_arena temp = {};
+                    MEM_ARENA_SCOPE(scratch,temp)
+                    {
+                        write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                    }
                 }
             }
         }
         else if(cli_contains(args, 'a'))
         {
-            struct mem_arena temp = mem_arena_create_scoped(scratch);
-            struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
-            create_uncreated_tags_assistant(&data, tags, &temp);
+            struct mem_arena temp = {};
+            MEM_ARENA_SCOPE(scratch,temp)
+            {
+                struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
+                create_uncreated_tags_assistant(&data, tags, &temp);
+            }
         }
 
         data_to_file(file, data, scratch);

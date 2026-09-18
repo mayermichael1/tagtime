@@ -132,27 +132,6 @@ mem_arena_destroy(struct mem_arena *scratch)
 }
 
 /**
- * creates a copy of a mem_arena
- *
- * as this copy is scope local the mem arena basically resets to the previous 
- * state whenever the scope is exited.
- *
- * this function may seem useless but adds to readability.
- * maybe create this as a DEFINE if this is ever as problem.
- *
- * !Data will stay in the memory but pointers are reset.
- *
- * @param   mem_arena to copy
- *
- * @return  exact copy of the struct
- */
-struct mem_arena
-mem_arena_create_scoped(struct mem_arena arena)
-{
-    return(arena);
-}
-
-/**
  * creates a scoped mem arena from an existing one
  *
  * @param   mem arena to scope
@@ -162,6 +141,7 @@ mem_arena_create_scoped(struct mem_arena arena)
 struct mem_arena
 mem_arena_scoped_begin(struct mem_arena *source)
 {
+    ASSERT(!MASK(source->flags, MEM_ARENA_CURRENTLY_SCOPED));
     struct mem_arena scoped = *source;
     source->flags |= MEM_ARENA_CURRENTLY_SCOPED;
     return(scoped);

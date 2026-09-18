@@ -112,23 +112,26 @@ struct string
 s64_to_string(s64 value, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
-
-    b8 negative = value < 0;
-    if(negative)
+    struct mem_arena temp_mem = {};
+    struct string inv = {};
+    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
     {
-        value = -value;
+
+        b8 negative = value < 0;
+        if(negative)
+        {
+            value = -value;
+        }
+
+        struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+
+        if(negative)
+        {
+            str.data[str.size++] = '-';
+        }
+
+        inv = string_invert(str, mem);
     }
-
-    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
-
-    if(negative)
-    {
-        str.data[str.size++] = '-';
-    }
-
-    struct string inv = string_invert(str, mem);
-    
     return(inv);
 }
 
@@ -154,9 +157,13 @@ struct string
 u64_to_string(u64 value, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
-    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
-    struct string inv = string_invert(str, mem);
+    struct mem_arena temp_mem = {};
+    struct string inv = {};
+    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
+    {
+        struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+        inv = string_invert(str, mem);
+    }
     return(inv);
 }
 
@@ -182,64 +189,67 @@ struct string
 f64_to_string(f64 value, u32 precision, struct mem_arena *mem)
 {
     ASSERT(string_local_temp_mem.start != 0);
-    struct mem_arena temp_mem = mem_arena_create_scoped(string_local_temp_mem);
-
-    b8 negative = value < 0;
-    if(negative)
+    struct mem_arena temp_mem = {};
+    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
     {
-        value = -value;
-    }
 
-    value *= pow_u64(10, precision);
-
-    struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
-
-    if(negative)
-    {
-        str.data[str.size++] = '-';
-    }
-
-    struct string inv = string_invert(str, mem);
-
-    //insert decimal point
-    if(value != 0)
-    {
-        if(precision >= inv.size) //NOTE: first digit should be 0
+        b8 negative = value < 0;
+        if(negative)
         {
-            u32 offset = precision - inv.size + 2;
-            for(u32 i = 0; i < inv.size; ++i)
+            value = -value;
+        }
+
+        value *= pow_u64(10, precision);
+
+        struct string str = internal_u64_to_growable_string_inverted(value, &temp_mem);
+
+        if(negative)
+        {
+            str.data[str.size++] = '-';
+        }
+
+        struct string inv = string_invert(str, mem);
+
+        //insert decimal point
+        if(value != 0)
+        {
+            if(precision >= inv.size) //NOTE: first digit should be 0
             {
-                inv.data[offset + i] = inv.data[0];
+                u32 offset = precision - inv.size + 2;
+                for(u32 i = 0; i < inv.size; ++i)
+                {
+                    inv.data[offset + i] = inv.data[0];
+                }
+                for(u32 i = 0; i < offset; ++i)
+                {
+                    inv.data[i] = '0';
+                }
+                inv.data[1] = '.';
+                inv.size += offset;
             }
-            for(u32 i = 0; i < offset; ++i)
+            else
             {
-                inv.data[i] = '0';
+                u32 digits_before_decimal = inv.size - precision;
+                inv.size += 1;
+                for(u32 i = inv.size-1; i > digits_before_decimal;--i)
+                {
+                    inv.data[i] = inv.data[i-1];
+                }
+                inv.data[digits_before_decimal] = '.';
             }
-            inv.data[1] = '.';
-            inv.size += offset;
         }
         else
         {
-            u32 digits_before_decimal = inv.size - precision;
-            inv.size += 1;
-            for(u32 i = inv.size-1; i > digits_before_decimal;--i)
+            inv.size += precision + 1;
+            inv.data[1] = '.';
+            for(u32 i = 2; i < inv.size; ++i)
             {
-                inv.data[i] = inv.data[i-1];
+                inv.data[i] = '0';
             }
-            inv.data[digits_before_decimal] = '.';
         }
+        
+        return(inv);
     }
-    else
-    {
-        inv.size += precision + 1;
-        inv.data[1] = '.';
-        for(u32 i = 2; i < inv.size; ++i)
-        {
-            inv.data[i] = '0';
-        }
-    }
-    
-    return(inv);
 }
 
 struct string
