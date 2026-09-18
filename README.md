@@ -5,6 +5,10 @@ Tasks can be tagged with various tags so they can be queried by them later.
 
 ## TODOs
 
+- [ ] major renaming of API functions
+- [ ] stdout helper for printf
+- [ ] MEM_ARENA_SCOPE paramter parsing with &?
+
 ### MEM Rework 
 
 - [x] one instance where platform local temp mem is used for persistent storage
