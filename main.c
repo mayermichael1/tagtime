@@ -45,6 +45,11 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
     return(all_tags_created);
 }
 
+#define stdout_printf(fmt, mem, ...) write_stdout(string_format(create_string(fmt), mem, __VA_ARGS__))
+
+
+#include <stdio.h>
+
 s32 
 main(u32 argc, u8** argv)
 {
