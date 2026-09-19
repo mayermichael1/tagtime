@@ -47,7 +47,7 @@ read_u8_stdin(){
 }
 
 u64 
-get_file_size(struct string filename)
+file_get_size(struct string filename)
 {
     struct stat st;
     struct mem_arena temp = {};
@@ -64,13 +64,13 @@ get_file_size(struct string filename)
 }
 
 void
-read_file(struct string filename, u64 len, u8 *buffer)
+file_read(struct string filename, u64 len, u8 *buffer)
 {
-    read_file_from(filename, 0, len, buffer);
+    file_read_from(filename, 0, len, buffer);
 }
 
 void
-read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
+file_read_from(struct string filename, u64 from, u64 len, u8 *buffer)
 {
     struct mem_arena temp = {};
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
@@ -87,7 +87,7 @@ read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
 }
 
 void
-write_file(struct string filename, u64 file_size, u8 *buffer)
+file_write(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     struct mem_arena temp = {};
@@ -110,7 +110,7 @@ write_file(struct string filename, u64 file_size, u8 *buffer)
 
 //TODO: massive code duplication from write_file
 void
-append_file(struct string filename, u64 file_size, u8 *buffer)
+file_append(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     struct mem_arena temp = {};

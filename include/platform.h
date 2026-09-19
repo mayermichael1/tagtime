@@ -24,23 +24,21 @@ struct string_array;
  *          will never run out. 
  *          platform layer will never need much memory anyways
  */
-void
-set_platform_arena(struct mem_arena arena);
 
 u64
-get_file_size(struct string filename);
+file_get_size(struct string filename);
 
 void
-read_file(struct string filename, u64 len, u8 *buffer);
+file_read(struct string filename, u64 len, u8 *buffer);
 
 void
-read_file_from(struct string filename, u64 from, u64 len, u8 *buffer);
+file_read_from(struct string filename, u64 from, u64 len, u8 *buffer);
 
 void
-write_file(struct string filename, u64 buffer_size, u8 *buffer);
+file_write(struct string filename, u64 buffer_size, u8 *buffer);
 
 void
-append_file(struct string filename, u64 buffer_size, u8 *buffer);
+file_append(struct string filename, u64 buffer_size, u8 *buffer);
 
 umm
 allocate(umm size);

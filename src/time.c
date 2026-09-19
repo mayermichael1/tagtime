@@ -23,7 +23,7 @@ data_from_file(struct string filename, struct mem_arena temp)
 
     struct mem_arena mem = mem_arena_create(sizeof(struct time_data_header));
     struct time_data_header *header = MEM_ARENA_PUSH_STRUCT(&mem, struct time_data_header);
-    read_file(filename, sizeof(struct time_data_header), (u8*)header);
+    file_read(filename, sizeof(struct time_data_header), (u8*)header);
 
     data.header = *header; 
     
@@ -36,14 +36,14 @@ data_from_file(struct string filename, struct mem_arena temp)
     mem = mem_arena_create(file_data_chunk + sizeof(struct time_entry));
     pointer.entry_capacity = data.header.entry_count + 1;
     struct time_entry *entries = MEM_ARENA_PUSH_ARRAY(&mem, struct time_entry, pointer.entry_capacity);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)entries); 
+    file_read_from(filename, file_offset, file_data_chunk, (u8*)entries); 
     pointer.entries = entries;
 
     file_offset += file_data_chunk;
     // string lenghts 
     file_data_chunk = data.header.tag_count * sizeof(u32);
     u32 *tag_lengths = MEM_ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_lengths);
+    file_read_from(filename, file_offset, file_data_chunk, (u8*)tag_lengths);
 
     file_offset += file_data_chunk;
 
@@ -53,7 +53,7 @@ data_from_file(struct string filename, struct mem_arena temp)
 
     pointer.tag_data_store_capacity = data.header.tag_strings_size + MAX_NEW_TAG_LENGTH * MAX_NEW_TAGS;
     u8 *tag_data = MEM_ARENA_PUSH_ARRAY(&mem, u8, pointer.tag_data_store_capacity);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)tag_data);
+    file_read_from(filename, file_offset, file_data_chunk, (u8*)tag_data);
     pointer.tag_data_store = tag_data;
 
     pointer.tag_capacity = data.header.tag_count + MAX_NEW_TAGS;
@@ -78,7 +78,7 @@ data_from_file(struct string filename, struct mem_arena temp)
     mem = mem_arena_create(file_data_chunk + sizeof(struct tag_entry_link) * MAX_TAG_LINKS * MAX_NEW_TAGS);
     pointer.link_capacity = data.header.link_count + MAX_TAG_LINKS * MAX_NEW_TAGS;
     struct tag_entry_link *links = MEM_ARENA_PUSH_ARRAY(&mem, struct tag_entry_link, pointer.link_capacity);
-    read_file_from(filename, file_offset, file_data_chunk, (u8*)links);
+    file_read_from(filename, file_offset, file_data_chunk, (u8*)links);
     pointer.links = links;
 
     data.data = pointer;
@@ -95,17 +95,17 @@ data_from_file(struct string filename, struct mem_arena temp)
 void 
 data_to_file(struct string filename, struct time_data data, struct mem_arena temp)
 {
-    write_file(filename, sizeof(data.header), (u8*)&data.header);
-    append_file(filename, sizeof(struct time_entry) * data.header.entry_count, (u8*)data.data.entries);
+    file_write(filename, sizeof(data.header), (u8*)&data.header);
+    file_append(filename, sizeof(struct time_entry) * data.header.entry_count, (u8*)data.data.entries);
 
     u32 *tag_lengths = MEM_ARENA_PUSH_ARRAY(&temp, u32, data.header.tag_count);
     for(u32 i = 0; i < data.header.tag_count; ++i)
     {
         tag_lengths[i] = data.data.tags[i].size;
     }
-    append_file(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths);
-    append_file(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store);
-    append_file(filename, sizeof(struct tag_entry_link) * data.header.link_count, (u8*)data.data.links);
+    file_append(filename, sizeof(u32) * data.header.tag_count, (u8*)tag_lengths);
+    file_append(filename, sizeof(u8) * data.header.tag_strings_size, (u8*)data.data.tag_data_store);
+    file_append(filename, sizeof(struct tag_entry_link) * data.header.link_count, (u8*)data.data.links);
 }
 
 /**
