@@ -45,11 +45,6 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
     return(all_tags_created);
 }
 
-#define stdout_printf(fmt, mem, ...) stdout_write(string_format(create_string(fmt), mem, __VA_ARGS__))
-
-
-#include <stdio.h>
-
 s32 
 main(u32 argc, u8** argv)
 {
@@ -143,7 +138,7 @@ main(u32 argc, u8** argv)
                     struct mem_arena temp = {};
                     MEM_ARENA_SCOPE(&scratch, &temp)
                     {
-                        stdout_write(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
+                        stdout_write_formatted(" - %s\n", data.data.tags[i]);
                     }
                 }
             }
@@ -191,14 +186,14 @@ main(u32 argc, u8** argv)
                                 if(cli_contains(args, 'l'))
                                 {
                                     struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                                    stdout_write(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                    stdout_write_formatted("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n", entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                                 }
                             }
                         }
                         if(cli_contains(args, 's'))
                         {
                             struct duration_minutes time = minute_to_time(sum_minutes);
-                            stdout_write(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                            stdout_write_formatted("Total of %u minutes, which are %ud %uh %um\n", time.sum_minutes, time.days, time.hours, time.minutes);
                         }
                     }
                 }
@@ -232,7 +227,7 @@ main(u32 argc, u8** argv)
                             struct mem_arena temp = {};
                             MEM_ARENA_SCOPE(&scratch,&temp)
                             {
-                                stdout_write(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                stdout_write_formatted("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n", i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes);
                             }
                         }
                     }
@@ -243,7 +238,7 @@ main(u32 argc, u8** argv)
                     struct mem_arena temp = {};
                     MEM_ARENA_SCOPE(&scratch,&temp)
                     {
-                        stdout_write(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                        stdout_write_formatted("Total of %u minutes, which are %ud %uh %um\n", time.sum_minutes, time.days, time.hours, time.minutes);
                     }
                 }
             }

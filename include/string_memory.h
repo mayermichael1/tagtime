@@ -556,10 +556,8 @@ string_extract_format_specifier(struct string format, u32 *index)
 }
 
 struct string
-string_format(struct string format, struct mem_arena *mem, ...)
+string_format_valist(struct string format, struct mem_arena *mem, va_list args) 
 {
-    va_list args;    
-    va_start(args, mem);
     struct string string = {};
 
     //TODO: bad: do not allocate memory on every function call
@@ -701,12 +699,21 @@ string_format(struct string format, struct mem_arena *mem, ...)
             }
         }
 
-        va_end(args);
         string = stringbuilder_build(sb, mem);
 
     }
 
     return(string);
+}
+
+struct string
+string_format(struct string format, struct mem_arena *mem, ...)
+{
+    va_list args;
+    va_start(args, mem);
+    struct string str = string_format_valist(format, mem, args);
+    va_end(args);
+    return(str);
 }
 
 

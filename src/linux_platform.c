@@ -29,6 +29,19 @@ stdout_write(struct string value)
     write(STDOUT_FILENO, value.data, value.size);
 }
 
+void
+stdout_write_formatted(const char *fmt, ...)
+{
+    struct mem_arena temp = {};
+    MEM_ARENA_SCOPE(&platform_local_temp_mem, &temp)
+    {
+        va_list args;
+        va_start(args, fmt);
+        stdout_write(string_format_valist(create_string(fmt), &temp, args));
+        va_end(args);
+    }
+}
+
 u8
 stdin_read_u8(){
     u8 character = 0;
