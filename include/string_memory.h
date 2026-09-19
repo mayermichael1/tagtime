@@ -229,7 +229,7 @@ s64_to_string(s64 value, struct mem_arena *mem)
 {
     struct mem_arena temp_mem = {};
     struct string inv = {};
-    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
+    MEM_ARENA_SCOPE(&string_local_temp_mem,&temp_mem)
     {
         struct stringbuilder sb = stringbuilder_create(100, &temp_mem);
         sb = stringbuilder_append_s64(sb, value);
@@ -252,7 +252,7 @@ u64_to_string(u64 value, struct mem_arena *mem)
 {
     struct mem_arena temp_mem = {};
     struct string inv = {};
-    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
+    MEM_ARENA_SCOPE(&string_local_temp_mem,&temp_mem)
     {
         struct stringbuilder sb = stringbuilder_create(100, &temp_mem);
         sb = stringbuilder_append_u64(sb, value);
@@ -265,7 +265,7 @@ struct stringbuilder
 stringbuilder_append_f64(struct stringbuilder sb, f64 value, u32 precision)
 {
     struct mem_arena temp_mem = {};
-    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
+    MEM_ARENA_SCOPE(&string_local_temp_mem,&temp_mem)
     {
         b8 negative = value < 0;
         if(negative)
@@ -333,7 +333,7 @@ f64_to_string(f64 value, u32 precision, struct mem_arena *mem)
 {
     struct mem_arena temp_mem = {};
     struct string inv = {};
-    MEM_ARENA_SCOPE(string_local_temp_mem,temp_mem)
+    MEM_ARENA_SCOPE(&string_local_temp_mem,&temp_mem)
     {
         struct stringbuilder sb = stringbuilder_create(100, &temp_mem);
         sb = stringbuilder_append_f64(sb, value, precision);
@@ -564,7 +564,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
 
     //TODO: bad: do not allocate memory on every function call
     struct mem_arena temp_mem = {}; 
-    MEM_ARENA_SCOPE(string_local_temp_mem, temp_mem)
+    MEM_ARENA_SCOPE(&string_local_temp_mem,&temp_mem)
     {
         struct stringbuilder sb = stringbuilder_create(1024, &temp_mem);
 
@@ -573,7 +573,7 @@ string_format(struct string format, struct mem_arena *mem, ...)
             if(format.data[i] == '%')
             {
                 struct mem_arena if_local_mem = {};
-                MEM_ARENA_SCOPE(temp_mem, if_local_mem)
+                MEM_ARENA_SCOPE(&temp_mem,&if_local_mem)
                 {
                     struct format_specifier fs = string_extract_format_specifier(format, &i);
                     struct stringbuilder to_insert_sb = stringbuilder_create(100, &if_local_mem);

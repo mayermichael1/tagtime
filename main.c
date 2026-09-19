@@ -111,7 +111,7 @@ main(u32 argc, u8** argv)
         {
             struct string time_string =  cli_get_arg(args, 'c', 0);
             struct mem_arena temp = {};
-            MEM_ARENA_SCOPE(scratch, temp)
+            MEM_ARENA_SCOPE(&scratch, &temp)
             {
                 struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
                 if(tags.count != 0)
@@ -141,7 +141,7 @@ main(u32 argc, u8** argv)
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
                     struct mem_arena temp = {};
-                    MEM_ARENA_SCOPE(scratch, temp)
+                    MEM_ARENA_SCOPE(&scratch, &temp)
                     {
                         write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
                     }
@@ -150,7 +150,7 @@ main(u32 argc, u8** argv)
             else if(cli_option_count(args, 't') != 0)
             {
                 struct mem_arena temp = {}; 
-                MEM_ARENA_SCOPE(scratch,temp)
+                MEM_ARENA_SCOPE(&scratch,&temp)
                 {
                     struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
 
@@ -230,7 +230,7 @@ main(u32 argc, u8** argv)
                         {
                             struct datetime dt = seconds_to_timestamp(entry.timestamp);
                             struct mem_arena temp = {};
-                            MEM_ARENA_SCOPE(scratch,temp)
+                            MEM_ARENA_SCOPE(&scratch,&temp)
                             {
                                 write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                             }
@@ -241,7 +241,7 @@ main(u32 argc, u8** argv)
                 {
                     struct duration_minutes time = minute_to_time(sum_minutes);
                     struct mem_arena temp = {};
-                    MEM_ARENA_SCOPE(scratch,temp)
+                    MEM_ARENA_SCOPE(&scratch,&temp)
                     {
                         write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                     }
@@ -251,7 +251,7 @@ main(u32 argc, u8** argv)
         else if(cli_contains(args, 'a'))
         {
             struct mem_arena temp = {};
-            MEM_ARENA_SCOPE(scratch,temp)
+            MEM_ARENA_SCOPE(&scratch,&temp)
             {
                 struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
                 create_uncreated_tags_assistant(&data, tags, &temp);

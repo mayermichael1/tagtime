@@ -52,7 +52,7 @@ get_file_size(struct string filename)
     struct stat st;
     struct mem_arena temp = {};
     u64 filesize = 0;
-    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
+    MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         const char *cfile = to_c_string(filename, &temp);
         if(stat(cfile, &st)==0)
@@ -73,7 +73,7 @@ void
 read_file_from(struct string filename, u64 from, u64 len, u8 *buffer)
 {
     struct mem_arena temp = {};
-    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
+    MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         s32 file = open(to_c_string(filename, &temp), O_RDONLY);
 
@@ -91,7 +91,7 @@ write_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     struct mem_arena temp = {};
-    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
+    MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         const char *dir = to_c_string(dirname, &temp);
 
@@ -114,7 +114,7 @@ append_file(struct string filename, u64 file_size, u8 *buffer)
 {
     struct string dirname = string_split_to(filename, string_find_last(filename, '/'));
     struct mem_arena temp = {};
-    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
+    MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         const char *dir = to_c_string(dirname, &temp);
 
@@ -161,7 +161,7 @@ get_data_directory(struct mem_arena *mem)
 {
     struct mem_arena temp = {};
     struct string dir = {};
-    MEM_ARENA_SCOPE(platform_local_temp_mem,temp)
+    MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         struct stringbuilder sb = stringbuilder_create(1024, &temp);
         sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));

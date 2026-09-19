@@ -167,7 +167,7 @@ mem_arena_scoped_end(struct mem_arena *original_memory, struct mem_arena *scoped
 }
 
 //TODO: not quite happy with this as the scoped memory has to be provided as well
-#define MEM_ARENA_SCOPE(mem, scoped) FOR_DEFER_BLOCK(mem_arena_scoped_begin_scoped_as_pointer(&mem, &scoped), mem_arena_scoped_end(&mem, &scoped))
+#define MEM_ARENA_SCOPE(mem, scoped) FOR_DEFER_BLOCK(mem_arena_scoped_begin_scoped_as_pointer(mem, scoped), mem_arena_scoped_end(mem, scoped))
 
 
 #endif 
