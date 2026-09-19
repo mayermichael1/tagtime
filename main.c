@@ -32,7 +32,7 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
         {
             if(tags.ids[i] == 0)
             {
-                stdout_write(string_format(create_string("Create tag \"%s\"? (y/n) : "),mem, tags.tags[i]));
+                stdout_write_formatted("Create tag \"%s\"? (y/n) : ", tags.tags[i]);
                 fflush(stdout);
                 all_tags_created = stdin_read_u8() == 'y';
                 if(all_tags_created)
