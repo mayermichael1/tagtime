@@ -21,7 +21,7 @@ create_mem_string(u32 size, struct mem_arena *mem)
 }
 
 const char *
-to_c_string(struct string str, struct mem_arena *scratch)
+string_to_cstring(struct string str, struct mem_arena *scratch)
 {
     u8* cstring = MEM_ARENA_PUSH_ARRAY(scratch, u8, (str.size+1));
     for(u32 i = 0; i < str.size; ++i)
@@ -85,7 +85,7 @@ string_append(struct string str1, struct string str2, struct mem_arena *scratch)
 
 
 struct string
-char_to_string(u8 value, struct mem_arena *mem)
+string_from_char(u8 value, struct mem_arena *mem)
 {
     struct string charstr = {};
     charstr.size = 1;
@@ -158,31 +158,6 @@ stringbuilder_u64_append_inverted(struct stringbuilder sb, u64 value)
         }
     }
     return(sb);
-}
-
-//TODO: implement this using a string builder of sorts
-//NOTE: internally used to convert numbers to strings
-struct string
-internal_u64_to_growable_string_inverted(u64 value, struct mem_arena *mem)
-{
-    struct string str = create_mem_string(512, mem);
-    str.size = 0; // set to 0 for "string builder"
-
-    if(value == 0)
-    {
-        str.size = 1;
-        str.data[0] = '0';
-    }
-    else
-    {
-        while(value != 0)
-        {
-            u8 digit = value % 10;
-            value = value / 10;
-            str.data[str.size++] = digit + '0';
-        }
-    }
-    return(str);
 }
 
 struct stringbuilder

@@ -61,7 +61,7 @@ stdout_write(struct string value);
 void
 stdout_write_cstring(const char *value)
 {
-    stdout_write(create_string(value));
+    stdout_write(string_create(value));
 }
 
 ///==========================================================================///
@@ -160,11 +160,11 @@ struct cli_arguments
 cli_parse(u32 argc, u8** argv, struct string options)
 {
     struct cli_arguments cli_args = {};
-    cli_args.program_name = create_string(argv[0]);
+    cli_args.program_name = string_create(argv[0]);
 
     for(u32 i = 1; i < argc; ++i)
     {
-        struct string arg = create_string(argv[i]);
+        struct string arg = string_create(argv[i]);
         if(arg.data[0] == '-' && arg.data[1] != 0)
         { 
             u8 find_option = arg.data[1];
@@ -273,10 +273,10 @@ struct string
 cli_get_arg(struct cli_arguments arguments, u8 option, u32 index)
 {    
     s16 i = _cli_arguments_find_position(arguments, option);
-    struct string arg = create_string("");
+    struct string arg = string_create("");
     if(i != -1 && index < cli_option_count(arguments, option))
     {
-        arg = create_string(arguments.args[i].argv_pointer[index]);
+        arg = string_create(arguments.args[i].argv_pointer[index]);
     } 
     return(arg);
 }

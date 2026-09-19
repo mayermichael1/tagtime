@@ -37,7 +37,7 @@ stdout_write_formatted(const char *fmt, ...)
     {
         va_list args;
         va_start(args, fmt);
-        stdout_write(string_format_valist(create_string(fmt), &temp, args));
+        stdout_write(string_format_valist(string_create(fmt), &temp, args));
         va_end(args);
     }
 }
@@ -58,7 +58,7 @@ file_get_size(struct string filename)
     u64 filesize = 0;
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
-        const char *cfile = to_c_string(filename, &temp);
+        const char *cfile = string_to_cstring(filename, &temp);
         if(stat(cfile, &st)==0)
         {
             filesize = st.st_size;
@@ -79,7 +79,7 @@ file_read_from(struct string filename, u64 from, u64 len, u8 *buffer)
     struct mem_arena temp = {};
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
-        s32 file = open(to_c_string(filename, &temp), O_RDONLY);
+        s32 file = open(string_to_cstring(filename, &temp), O_RDONLY);
 
         if(file > 0)
         {
@@ -97,11 +97,11 @@ file_write(struct string filename, u64 file_size, u8 *buffer)
     struct mem_arena temp = {};
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
-        const char *dir = to_c_string(dirname, &temp);
+        const char *dir = string_to_cstring(dirname, &temp);
 
         if(mkdir(dir, 0777) == 0 || errno == EEXIST)
         {
-            s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+            s32 file = open(string_to_cstring(filename, &temp), O_WRONLY | O_CREAT | O_TRUNC, 0777);
 
             if(file > 0)
             {
@@ -120,11 +120,11 @@ file_append(struct string filename, u64 file_size, u8 *buffer)
     struct mem_arena temp = {};
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
-        const char *dir = to_c_string(dirname, &temp);
+        const char *dir = string_to_cstring(dirname, &temp);
 
         if(mkdir(dir, 0777) == 0 || errno == EEXIST)
         {
-            s32 file = open(to_c_string(filename, &temp), O_WRONLY | O_CREAT | O_APPEND, 0777);
+            s32 file = open(string_to_cstring(filename, &temp), O_WRONLY | O_CREAT | O_APPEND, 0777);
 
             if(file > 0)
             {
@@ -168,17 +168,17 @@ get_data_directory(struct mem_arena *mem)
     MEM_ARENA_SCOPE(&platform_local_temp_mem,&temp)
     {
         struct stringbuilder sb = stringbuilder_create(1024, &temp);
-        sb = stringbuilder_append(sb, create_string(getenv("XDG_DATA_HOME")));
+        sb = stringbuilder_append(sb, string_create(getenv("XDG_DATA_HOME")));
         // TODO: determinine application name dynamically somehow
         if(sb.string.size == 0)
         {
 
-            sb = stringbuilder_append(sb, create_string(getenv("HOME")));
-            sb = stringbuilder_append(sb, create_string("/.local/share/tagtime/"));
+            sb = stringbuilder_append(sb, string_create(getenv("HOME")));
+            sb = stringbuilder_append(sb, string_create("/.local/share/tagtime/"));
         }
         else
         {
-            sb = stringbuilder_append(sb, create_string("/tagtime/"));
+            sb = stringbuilder_append(sb, string_create("/tagtime/"));
         }
         dir = stringbuilder_build(sb, mem);
     }

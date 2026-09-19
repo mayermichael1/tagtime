@@ -63,7 +63,7 @@ main(u32 argc, u8** argv)
     //
     //
 
-    struct cli_arguments args = cli_parse(argc, argv, create_string("t.lsaf:c:hnw:m:"));
+    struct cli_arguments args = cli_parse(argc, argv, string_create("t.lsaf:c:hnw:m:"));
 
     platform_local_temp_mem = mem_arena_create(KB);
     string_local_temp_mem = mem_arena_create(10 * KB);
@@ -97,7 +97,7 @@ main(u32 argc, u8** argv)
         }
         else
         {
-            file = string_append(get_data_directory(&scratch), create_string("tagtime.data"), &scratch);
+            file = string_append(get_data_directory(&scratch), string_create("tagtime.data"), &scratch);
         }
 
         struct time_data data = data_from_file(file, scratch);

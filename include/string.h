@@ -9,7 +9,7 @@ struct string
 
 
 struct string
-create_string(const char* value)
+string_create(const char* value)
 {
     struct string str = {};
     if(value != NULL)
