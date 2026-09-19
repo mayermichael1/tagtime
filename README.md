@@ -5,19 +5,19 @@ Tasks can be tagged with various tags so they can be queried by them later.
 
 ## TODOs
 
-- [ ] major renaming of API functions
-- [ ] stdout helper for printf
-- [ ] MEM_ARENA_SCOPE paramter parsing with &?
+- [x] major renaming of API functions
+- [x] stdout helper for printf
+- [x] MEM_ARENA_SCOPE paramter parsing with &?
 
 ### MEM Rework 
 
 - [x] one instance where platform local temp mem is used for persistent storage
       of a string
-- [ ] mem_arena_create in string usage code
+- [x] mem_arena_create in string usage code
       instead of using a stringbuilder for number to string functions create the
       string inline of the stringbuilder
       then create abstractions directly returning string
-- [ ] when scoped arena is created of an arena it should not be possible to use 
+- [x] when scoped arena is created of an arena it should not be possible to use 
       the normal arena for allocations
       use defer loop to create scoped arenas and mark current arena with a flag
 - [x] restructure mem_arena API
