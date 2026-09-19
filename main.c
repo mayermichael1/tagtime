@@ -22,7 +22,7 @@
  *          have been created
  */
 b8
-create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, struct mem_arena *mem)
+create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags)
 {
     b8 all_tags_created = true;
     if(contains_uncreated_tags(tags))
@@ -111,7 +111,7 @@ main(u32 argc, u8** argv)
                 struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
                 if(tags.count != 0)
                 {
-                    if(create_uncreated_tags_assistant(&data, tags, &temp))
+                    if(create_uncreated_tags_assistant(&data, tags))
                     {
                         u64 duration = string_to_minutes(time_string);
                         u64 entry_id = insert_time_entry(&data, create_entry(duration));
@@ -249,7 +249,7 @@ main(u32 argc, u8** argv)
             MEM_ARENA_SCOPE(&scratch,&temp)
             {
                 struct tag_array tags = tags_to_array(data, cli_get_args(args, 't', &temp), &temp); 
-                create_uncreated_tags_assistant(&data, tags, &temp);
+                create_uncreated_tags_assistant(&data, tags);
             }
         }
 
