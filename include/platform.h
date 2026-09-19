@@ -53,13 +53,16 @@ struct string
 get_data_directory();
 
 u8 
-read_u8_stdin();
+stdin_read_u8();
 
 void
-write_stdout(struct string value);
+stdout_write(struct string value);
 
 void
-write_stdout_cstring(const char *value);
+stdout_write_cstring(const char *value)
+{
+    stdout_write(create_string(value));
+}
 
 ///==========================================================================///
 ///                             CLI ARGUMENTS HADNLING                       ///

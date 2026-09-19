@@ -24,22 +24,13 @@ flush_stdin(){
 }
 
 void
-write_stdout(struct string value)
+stdout_write(struct string value)
 {
     write(STDOUT_FILENO, value.data, value.size);
 }
 
-void
-write_stdout_cstring(const char *value)
-{
-    for(u8 *c = (u8*)value; *c != 0; ++c)
-    {
-        write(STDOUT_FILENO, c, 1);
-    }
-}
-
 u8
-read_u8_stdin(){
+stdin_read_u8(){
     u8 character = 0;
     read(STDIN_FILENO, &character, 1);
     flush_stdin();

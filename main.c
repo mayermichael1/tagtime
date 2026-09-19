@@ -27,14 +27,14 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
     b8 all_tags_created = true;
     if(contains_uncreated_tags(tags))
     {
-        write_stdout_cstring("Uncreated tags found.\n"); 
+        stdout_write_cstring("Uncreated tags found.\n"); 
         for(u32 i = 0; all_tags_created && i < tags.count; i++)
         {
             if(tags.ids[i] == 0)
             {
-                write_stdout(string_format(create_string("Create tag \"%s\"? (y/n) : "),mem, tags.tags[i]));
+                stdout_write(string_format(create_string("Create tag \"%s\"? (y/n) : "),mem, tags.tags[i]));
                 fflush(stdout);
-                all_tags_created = read_u8_stdin() == 'y';
+                all_tags_created = stdin_read_u8() == 'y';
                 if(all_tags_created)
                 {
                     tags.ids[i] = insert_tag(data, tags.tags[i]);
@@ -45,7 +45,7 @@ create_uncreated_tags_assistant(struct time_data *data, struct tag_array tags, s
     return(all_tags_created);
 }
 
-#define stdout_printf(fmt, mem, ...) write_stdout(string_format(create_string(fmt), mem, __VA_ARGS__))
+#define stdout_printf(fmt, mem, ...) stdout_write(string_format(create_string(fmt), mem, __VA_ARGS__))
 
 
 #include <stdio.h>
@@ -78,21 +78,21 @@ main(u32 argc, u8** argv)
 
     if(cli_contains(args, 'h'))
     {
-        write_stdout_cstring("tagtime usage:\n");
-        write_stdout_cstring(" -h ... show this help page\n");
-        write_stdout_cstring(" -c time ... create new entry (requires tag(s))\n");
-        write_stdout_cstring("\t time formats: \n");
-        write_stdout_cstring("\t -c HH:mm\n");
-        write_stdout_cstring("\t -c minutes\n");
-        write_stdout_cstring("\t -c H,Hfract \n");
-        write_stdout_cstring("\t -c H.Hfract \n");
-        write_stdout_cstring(" -a add new tags to the system\n");
-        write_stdout_cstring(" -l list all times tracked to specified tag(s)\n");
-        write_stdout_cstring(" -s sum all times tracked to specified tag(s)\n");
-        write_stdout_cstring(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
-        write_stdout_cstring(" -n when no tags are given show all entries\n");
-        write_stdout_cstring(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n");
-        write_stdout_cstring(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n");
+        stdout_write_cstring("tagtime usage:\n");
+        stdout_write_cstring(" -h ... show this help page\n");
+        stdout_write_cstring(" -c time ... create new entry (requires tag(s))\n");
+        stdout_write_cstring("\t time formats: \n");
+        stdout_write_cstring("\t -c HH:mm\n");
+        stdout_write_cstring("\t -c minutes\n");
+        stdout_write_cstring("\t -c H,Hfract \n");
+        stdout_write_cstring("\t -c H.Hfract \n");
+        stdout_write_cstring(" -a add new tags to the system\n");
+        stdout_write_cstring(" -l list all times tracked to specified tag(s)\n");
+        stdout_write_cstring(" -s sum all times tracked to specified tag(s)\n");
+        stdout_write_cstring(" -t tag [tag2] [tag3] ... list of tags to be operated upon\n");
+        stdout_write_cstring(" -n when no tags are given show all entries\n");
+        stdout_write_cstring(" -w [offset] filter entries for given week (e.g.: -1 last week, 0 current week)\n");
+        stdout_write_cstring(" -m [offset] filter entries for given month (e.g.: -1 last month, 0 current month)\n");
     }
     else
     {
@@ -124,12 +124,12 @@ main(u32 argc, u8** argv)
                     }
                     else
                     {
-                        write_stdout_cstring("not all tags have been created. entry was not inserted.\n");
+                        stdout_write_cstring("not all tags have been created. entry was not inserted.\n");
                     }
                 }
                 else
                 {
-                    write_stdout_cstring("Time needs to have at least one tag \n");
+                    stdout_write_cstring("Time needs to have at least one tag \n");
                 }
             }
         }
@@ -137,13 +137,13 @@ main(u32 argc, u8** argv)
         {
             if(!cli_contains(args, 't') && !cli_contains(args, 'n'))
             {
-                write_stdout_cstring("List of available tags: \n");
+                stdout_write_cstring("List of available tags: \n");
                 for(u32 i=0; i<data.header.tag_count; ++i)
                 {
                     struct mem_arena temp = {};
                     MEM_ARENA_SCOPE(&scratch, &temp)
                     {
-                        write_stdout(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
+                        stdout_write(string_format(create_string(" - %s\n"),&temp, data.data.tags[i]));
                     }
                 }
             }
@@ -156,7 +156,7 @@ main(u32 argc, u8** argv)
 
                     if(contains_uncreated_tags(tags))
                     { 
-                        write_stdout_cstring("Not all provided tags exist \n");
+                        stdout_write_cstring("Not all provided tags exist \n");
                     }
                     else
                     {
@@ -191,14 +191,14 @@ main(u32 argc, u8** argv)
                                 if(cli_contains(args, 'l'))
                                 {
                                     struct datetime dt = seconds_to_timestamp(entry.timestamp);
-                                    write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                    stdout_write(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, entry_id, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                                 }
                             }
                         }
                         if(cli_contains(args, 's'))
                         {
                             struct duration_minutes time = minute_to_time(sum_minutes);
-                            write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                            stdout_write(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                         }
                     }
                 }
@@ -232,7 +232,7 @@ main(u32 argc, u8** argv)
                             struct mem_arena temp = {};
                             MEM_ARENA_SCOPE(&scratch,&temp)
                             {
-                                write_stdout(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
+                                stdout_write(string_format(create_string("%d;%04d.%02d.%02d %02d:%02d:%02d;%u\n"),&temp, i, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, entry.minutes));
                             }
                         }
                     }
@@ -243,7 +243,7 @@ main(u32 argc, u8** argv)
                     struct mem_arena temp = {};
                     MEM_ARENA_SCOPE(&scratch,&temp)
                     {
-                        write_stdout(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
+                        stdout_write(string_format(create_string("Total of %u minutes, which are %ud %uh %um\n"),&temp, time.sum_minutes, time.days, time.hours, time.minutes));
                     }
                 }
             }
